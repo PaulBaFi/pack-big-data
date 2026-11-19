@@ -1,0 +1,66 @@
+export type MockRow = Record<string, string | number | null>;
+export const tableDefinitions = [
+  ['CATALOGO_BIEN_SERV',['SEC_EJEC','TIPO_BIEN','GRUPO_BIEN','CLASE_BIEN','FAMILIA_BIEN','ITEM_BIEN','NOMBRE_ITEM']],
+  ['FAMILIA_BIEN_SERV',['tipo_bien','grupo_bien','clase_bien','familia_bien','nombre_fam']],
+  ['GRUPO_BIEN_SERV',['tipo_bien','grupo_bien','nombre_grupo']],
+  ['UNIDAD_MEDIDA',['UNIDAD_MEDIDA','NOMBRE','ABREVIATURA']],
+  ['SIG_CENTRO_COSTO',['ANO_EJE','SEC_EJEC','CENTRO_COSTO','NOMBRE_DEPEND']],
+  ['SIG_SEDES',['sede','pliego','nombre_sede','direccion']],
+  ['EJECUTORA',['sec_ejec','ejecutora','nombre','ruc_ejec']],
+  ['SIG_CLASIFICADOR_GASTO',['ANO_EJE','CLASIFICADOR','NOMBRE_CLASIF']],
+  ['FUENTE_FINANC',['ANO_EJE','ORIGEN','FUENTE_FINANC','nombre']],
+  ['META',['ano_eje','sec_ejec','sec_func','finalidad','nombre','monto']],
+  ['SIG_CUADRO_NECESIDAD',['ANO_EJE','SEC_EJEC','CENTRO_COSTO','SECUENCIA','FASE_CUADRO']],
+  ['SIG_CUADRO_NECESIDAD_DET',['ANO_EJE','SEC_EJEC','CENTRO_COSTO','SECUENCIA','FASE_CUADRO','ITEM_SEC']],
+  ['SIG_PAAC_CONSOLIDADO',['ANO_EJE','SEC_EJEC','TIPO_CONSOLID','NRO_CONSOLID','TIPO_GENERACION']],
+  ['SIG_PAAC_ITEM',['ANO_EJE','SEC_EJEC','TIPO_CONSOLID','NRO_CONSOLID','TIPO_GENERACION','TIPO_BIEN','SEC_CONSOLID','SEC_RESUMEN']],
+  ['SIG_PAAC_DET',['ANO_EJE','SEC_EJEC','TIPO_CONSOLID','NRO_CONSOLID','TIPO_GENERACION','ANO_PROCESO']],
+  ['SIG_PEDIDOS',['ANO_EJE','SEC_EJEC','TIPO_BIEN','TIPO_PEDIDO','NRO_PEDIDO']],
+  ['SIG_DETALLE_PEDIDOS',['ANO_EJE','sec_ejec','TIPO_BIEN','TIPO_PEDIDO','NRO_PEDIDO','SECUENCIA']],
+  ['SIG_SOLICITUD_COTIZACION',['ANO_EJE','SEC_EJEC','TIPO_CONSOLID','NRO_CONSOLID','TIPO_GENERACION','NRO_SOLICITUD']],
+  ['SIG_SOLICITUD_COTIZACION_ITEM',['ANO_EJE','SEC_EJEC','TIPO_CONSOLID','NRO_CONSOLID','TIPO_GENERACION','NRO_SOLICITUD','TIPO_BIEN','SEC_CONSOLID','SEC_RESUMEN']],
+  ['SIG_ORDEN_ADQUISICION',['ANO_EJE','SEC_EJEC','NRO_ORDEN','TIPO_BIEN','TIPO_PPTO']],
+  ['SIG_ORDEN_ITEM',['ANO_EJE','SEC_EJEC','NRO_ORDEN','TIPO_BIEN','TIPO_PPTO','SEC_ORDEN','SEC_ITEM']],
+  ['SIG_CONTRATISTAS',['PROVEEDOR','NOMBRE_PROV','NRO_RUC','ESTADO']],
+  ['SIG_CONTRATOS',['ANO_EJE','SEC_EJEC','TIPO_CONTRATO','NRO_CONTRATO','TIPO_BIEN']],
+  ['SIG_CONTRATO_ITEM',['ANO_EJE','SEC_EJEC','TIPO_CONTRATO','NRO_CONTRATO','NRO_ITEM']],
+  ['SIG_CONTRATO_DET',['ANO_EJE','SEC_EJEC','TIPO_CONTRATO','NRO_CONTRATO','ANO_PROCESO']],
+  ['SIG_CERTIFICACION',['ANO_EJE','SEC_EJEC','NRO_CERTIFICA']],
+  ['SIG_CERTIFICACION_MOV',['ANO_EJE','SEC_EJEC','NRO_CERTIFICA','SECUENCIA']],
+  ['SIG_CERTIFICACION_PPTO',['ANO_EJE','SEC_EJEC','NRO_CERTIFICA','SECUENCIA_FASE','SECUENCIA_OPERA','SECUENCIA_DET','SECUENCIA_PPTO']],
+  ['SIG_DEVENGADO',['ANO_EJE','SEC_EJEC','NRO_DEVENGADO']],
+  ['SIG_DEVENGADO_ITEM',['ANO_EJE','SEC_EJEC','NRO_DEVENGADO','SEC_DEVENGADO','SEC_ITEM']],
+  ['SIG_ALMACEN',['sec_ejec','ALMACEN','SEC_ALMACEN','NOMBRE_ALM']],
+  ['SIG_MOVIM_ALMACEN',['SEC_EJEC','ANO_EJE','ALMACEN','SEC_ALMACEN','TIPO_MOVIMTO','TIPO_TRANSAC','TIPO_PPTO','NRO_MOVIMTO']],
+  ['SIG_DETALLE_MOVIM_ALMACEN',['sec_ejec','ANO_EJE','ALMACEN','SEC_ALMACEN','TIPO_MOVIMTO','TIPO_TRANSAC','TIPO_PPTO','NRO_MOVIMTO','SECUENCIA','SEC_DETALLE']],
+  ['SIG_KARDEX_POR_ALMACEN',['SEC_EJEC','ANO_EJE','MES_PROCESO','ALMACEN','SEC_ALMACEN','TIPO_BIEN','CODIGO_BIEN','SECUENCIA','CORRELATIVO']],
+  ['SIG_KARDEX_INVENTARIO',['ANO_EJE','SEC_EJEC','MES_PROCESO','ALMACEN','SEC_ALMACEN','TIPO_PPTO','TIPO_BIEN','CODIGO_BIEN','SECUENCIA','CORRELATIVO','nro_inventario']],
+  ['SIG_INVENTARIO_FISICO',['ANO_EJE','sec_ejec','NRO_INVENTARIO']],
+  ['SIG_DETALLE_INVENT_FISICO',['ANO_EJE','SEC_EJEC','TIPO_MODALIDAD','SECUENCIA','NRO_INVENTARIO']],
+  ['SIG_PATRIMONIO',['SEC_EJEC','TIPO_MODALIDAD','SECUENCIA']],
+  ['SIG_MOVIM_PATRIMONIO',['ANO_EJE','SEC_EJEC','TIPO_MODALIDAD','SECUENCIA']],
+  ['SIG_ASIGNACIONES',['ANO_EJE','SEC_EJEC','TIPO_MODALIDAD','SECUENCIA','NRO_ASIGNAC']],
+  ['SIG_MOVIM_ASIGNACION',['ANO_EJE','SEC_EJEC','TIPO_MODALIDAD','SECUENCIA','NRO_ASIGNAC','SEC_ASIGNAC']],
+  ['SEG_USUARIO',['USUARIO']],
+  ['SEG_ROL_USUARIO',['USUARIO','ROL']],
+  ['SEG_ROL_PAGINA_PRIVILEGIO',['PRIVILEGIO','SEC_EJEC','ROL','PAGINA']],
+  ['SIG_SEGUIMIENTO',['ANO_EJE','SEC_EJEC','TIPO_TRANSACCION','NRO_ORIGEN']],
+  ['SIG_AUDITORIA',['ANO_EJE','SEC_EJEC','TIPO_MOVIMIENTO','SECUENCIA']]
+] as const;
+
+export function generateRows(table: string, fields: readonly string[], count = 20): MockRow[] {
+  return Array.from({ length: count }, (_, i) => {
+    const row: MockRow = {};
+    fields.forEach((field, index) => {
+      if (field.toLowerCase().includes('nombre') || field.includes('DESCRIP') || field === 'NOMBRE') row[field] = `${table.replaceAll('_',' ')} ${i + 1}`;
+      else if (field.includes('FECHA')) row[field] = `2026-${String((i % 9)+1).padStart(2,'0')}-15`;
+      else if (field === 'ESTADO' || field.startsWith('FLAG')) row[field] = i % 4 === 0 ? 'I' : 'A';
+      else if (field === 'TIPO_BIEN' || field === 'TIPO_CONTRATO') row[field] = i % 2 ? 'S' : 'B';
+      else if (field === 'ROL') row[field] = i % 2 ? 'CONSULTA' : 'OPERADOR';
+      else row[field] = index === 0 ? 2026 : i + 1;
+    });
+    return row;
+  });
+}
+
+export const seed = Object.fromEntries(tableDefinitions.map(([table, fields]) => [table, generateRows(table, fields)]));

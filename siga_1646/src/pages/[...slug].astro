@@ -1,0 +1,11 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import SigaApp from '@/components/SigaApp';
+export function getStaticPaths() {
+  return ['catalogos','institucion','necesidades','programacion','pedidos','cotizaciones','ordenes','contratistas','contratos','presupuesto','devengados','almacenes','kardex','inventarios','patrimonio','asignaciones','seguridad','seguimiento','reportes'].map((slug) => ({ params: { slug } }));
+}
+---
+
+<AppLayout>
+  <SigaApp client:load />
+</AppLayout>
