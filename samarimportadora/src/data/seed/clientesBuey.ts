@@ -1,0 +1,2 @@
+import type { ClienteBuey } from '../../types/database';
+export const clientesBuey: ClienteBuey[] = Array.from({length:20},(_,i)=>({ID_CLIENTE:`BUEY-${i+1}`,NOMBRE:['Alejandra','Héctor','Patricia','Mauricio'][i%4],APELLIDO:['Lagos','Vidal','Bravo','Correa'][i%4],EDAD:25+i,'LUGAR ORIGEN':['Zona Central','Zona Norte','Zona Sur'][i%3],'PREFERENCIA COLOR':['Rojo','Azul','Verde','Negro'][i%4],'TIPO DE COMIDA':['Parrilla','Casera','Vegetariana'][i%3],'ESTADO CIVIL':i%2?'Soltero/a':'Casado/a','CANTIDAD DE HIJOS':i%4,FIDELIDAD:i%3?'Frecuente':'Premium',COMPRABUEY:i%2?'Sí':'No'}));

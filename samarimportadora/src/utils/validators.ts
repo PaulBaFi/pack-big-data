@@ -1,0 +1,1 @@
+export const required=(value:unknown,label:string)=>value===null||value===undefined||String(value).trim()===''?`${label} es obligatorio`:''; export const positive=(v:number,label:string)=>v>0?'':`${label} debe ser mayor que cero`;

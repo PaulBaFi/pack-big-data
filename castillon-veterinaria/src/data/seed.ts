@@ -1,0 +1,35 @@
+import type { DB } from '@/types/domain';
+const names = ['María','Carlos','Lucía','Jorge','Valeria','Diego','Ana','Marco','Sofía','Luis','Camila','Renato','Elena','Pablo','Daniela','Mateo','Rosa','Andrés','Paola','Álvaro'];
+const surnames = ['Quispe','García','Flores','Torres','Mendoza','Rojas','Vargas','Castillo','Salazar','Paredes'];
+const pets = ['Luna','Max','Nala','Toby','Milo','Kira','Rocky','Coco','Simba','Maya','Bruno','Sasha'];
+const today = new Date().toISOString().slice(0, 10);
+export function seedDB(): DB {
+  const PERSONA = Array.from({length: 50}, (_, i) => ({ IDPERSONA:i+1, NOMBRES:names[i%names.length], APELLIDOS:`${surnames[i%10]} ${surnames[(i+3)%10]}`, DOCUMENTO:`7${String(1000000+i).padStart(7,'0')}`, TELEFONO:`9${String(10000000+i).slice(0,8)}`, EMAIL:`persona${i+1}@demo.pe` }));
+  const EMPRESA = Array.from({length: 25}, (_, i) => ({ IDEMPRESA:i+1, RUC:`20${String(100000000+i).padStart(9,'0')}`, RAZON_SOCIAL:`Distribuidora Vet ${i+1} SAC`, DIRECCION:`Av. Salud ${100+i}, Lima`, TELEFONO:`01${String(4000000+i)}` }));
+  const CLIENTE = Array.from({length: 35}, (_, i) => ({ IDCLIENTE:i+1, ...(i<30 ? {IDPERSONA:i+1, TIPO:'Persona' as const} : {IDEMPRESA:i-29, TIPO:'Empresa' as const}), ACTIVO:true }));
+  const ESPECIE = [{IDESPECIE:1,NOMESPECIE:'Canino'},{IDESPECIE:2,NOMESPECIE:'Felino'},{IDESPECIE:3,NOMESPECIE:'Ave'},{IDESPECIE:4,NOMESPECIE:'Exótico'}];
+  const RAZA = Array.from({length:24}, (_,i) => ({IDRAZA:i+1, IDESPECIE:i%2+1, NOMRAZA:['Mestizo','Labrador','Golden Retriever','Pastor Alemán','Siamés','Persa'][i%6]}));
+  const MASCOTA = Array.from({length:40}, (_,i) => ({IDMASCOTA:i+1, IDPERSONA:i%30+1, IDRAZA:i%24+1, NOMBRE:pets[i%pets.length]+` ${i+1}`, GENERO:i%2?'Hembra' as const:'Macho' as const, COLOR:['Marrón','Negro','Blanco','Tricolor'][i%4], FECHANACIMIENTO:`202${i%6}-0${i%9+1}-15`, PESO:Math.round((3+i%28)*10)/10}));
+  const ESPECIALIDAD = ['Medicina general','Dermatología','Cirugía','Odontología','Cardiología'].map((NOMESPECIALIDAD,i)=>({IDESPECIALIDAD:i+1,NOMESPECIALIDAD}));
+  const EMPLEADO = Array.from({length:20},(_,i)=>({IDEMPLEADO:i+1,IDPERSONA:i+1,IDESPECIALIDAD:i%5+1,CODEMPLEADO:`VET-${String(i+1).padStart(3,'0')}`,CARGO:i<12?'Médico veterinario':'Asistente',ACTIVO:true}));
+  const CITA = Array.from({length:50},(_,i)=>({IDCITA:i+1,IDMASCOTA:i%40+1,IDEMPLEADO:i%12+1,FECHA:`2026-${String(i%9+1).padStart(2,'0')}-${String(i%25+1).padStart(2,'0')}`,HORA:`${String(8+i%9).padStart(2,'0')}:00`,MOTIVO:['Consulta general','Vacunación','Control','Emergencia'][i%4],ESTADO_CITA:(['P','C','A','X'] as const)[i%4]}));
+  const FICHA_CLINICA = Array.from({length:35},(_,i)=>({IDFICHA:i+1,IDMASCOTA:i%40+1,IDEMPLEADO:i%12+1,IDCITA:i+1,MOTIVO_CONSULTA:'Control preventivo',SINTOMAS:i%3?'Sin síntomas relevantes':'Prurito y decaimiento',TEMPERATURA:38+i%10/10,DIAGNOSTICO:['Paciente sano','Dermatitis leve','Gastroenteritis'][i%3],TRATAMIENTO:'Tratamiento y recomendaciones registrados',FECHA:`2026-0${i%9+1}-10`}));
+  const TIPO_ANALISIS = ['Hemograma','Bioquímica','Orina','Rayos X','Ecografía'].map((NOMBRE,i)=>({IDTIPO_ANALISIS:i+1,NOMBRE}));
+  const ANALISIS = Array.from({length:25},(_,i)=>({IDANALISIS:i+1,IDTIPO_ANALISIS:i%5+1,IDFICHA:i%35+1,FECHA:today,RESULTADO:i%2?'Dentro de rango':'Requiere seguimiento',OBSERVACION:'Resultado demostrativo'}));
+  const CATEGORIA = ['Medicamentos','Alimentos','Higiene','Accesorios','Vacunas','Material clínico'].map((NOMCATEGORIA,i)=>({IDCATEGORIA:i+1,NOMCATEGORIA}));
+  const UNIDAD_MEDIDA = [{IDUNIDAD:1,NOMBRE:'Unidad',ABREVIATURA:'und'},{IDUNIDAD:2,NOMBRE:'Frasco',ABREVIATURA:'fco'},{IDUNIDAD:3,NOMBRE:'Kilogramo',ABREVIATURA:'kg'}];
+  const PRODUCTO = Array.from({length:45},(_,i)=>({IDPRODUCTO:i+1,IDCATEGORIA:i%6+1,IDUNIDAD:i%3+1,CODIGO:`PROD-${String(i+1).padStart(3,'0')}`,NOMBRE:['Antibiótico veterinario','Alimento premium','Shampoo medicado','Collar protector','Vacuna múltiple','Jeringa estéril'][i%6]+` ${i+1}`,PRECIO_VENTA:25+i*2,COSTO:15+i,STOCK:20+i%35,STOCK_MINIMO:8,ACTIVO:true}));
+  const ALMACEN=[{IDALMACEN:1,NOMBRE:'Almacén principal',DIRECCION:'Sede central'},{IDALMACEN:2,NOMBRE:'Almacén frío',DIRECCION:'Sede central'}];
+  const MOVIMIENTO_PRODUCTO=Array.from({length:40},(_,i)=>({IDMOVIMIENTO:i+1,IDPRODUCTO:i%45+1,IDALMACEN:1,TIPO:i%3?'ENTRADA' as const:'SALIDA' as const,CANTIDAD:5+i%10,FECHA:today,MOTIVO:'Movimiento inicial'}));
+  const AUDITORIA_STOCK=Array.from({length:25},(_,i)=>({Idauditoria:i+1,Idproducto:i%45+1,FechaDeteccion:today,StockActual:20+i%35,StockCalculado:20+i%35,Diferencia:0,Observaciones:'Auditoría de demostración'}));
+  const COMPRA=Array.from({length:30},(_,i)=>({IDCOMPRA:i+1,IDALMACEN:1,IDEMPRESA:i%25+1,FECHA:today,DOCUMENTO:`F001-${1000+i}`,TOTAL:(i+1)*125,ESTADO:i%3?'CONFIRMADA' as const:'BORRADOR' as const}));
+  const DETALLE_COMPRA=Array.from({length:60},(_,i)=>({IDDETALLE_COMPRA:i+1,IDCOMPRA:i%30+1,IDPRODUCTO:i%45+1,CANTIDAD:2+i%8,PRECIO_UNITARIO:15+i%20,SUBTOTAL:(2+i%8)*(15+i%20)}));
+  const VENTA=Array.from({length:35},(_,i)=>({IDVENTA:i+1,IDCLIENTE:i%35+1,FECHA:today,SUBTOTAL:80+i*5,DESCUENTO:i%4?0:10,IGV:(80+i*5)*.18,TOTAL:(80+i*5)*1.18-(i%4?0:10),ESTADO:i%5?'CONFIRMADA' as const:'PENDIENTE' as const}));
+  const DETALLE_VENTA=Array.from({length:70},(_,i)=>({IDDETALLE_VENTA:i+1,IDVENTA:i%35+1,IDPRODUCTO:i%45+1,DESCRIPCION:'Producto veterinario',CANTIDAD:i%3+1,PRECIO_UNITARIO:25+i%20,PRECIO_FINAL:25+i%20,SUBTOTAL:(i%3+1)*(25+i%20)}));
+  const PROMOCION=Array.from({length:20},(_,i)=>({IDPROMOCION:i+1,NOMBRE:`Promo bienestar ${i+1}`,TIPO:'PORCENTAJE' as const,VALOR:5+i%4*5,DESDE:'2026-01-01',HASTA:'2026-12-31',ACTIVA:i%3!==0}));
+  const CAJA=[{IDCAJA:1,NOMBRE:'Caja recepción',DESCRIPCION:'Caja principal'},{IDCAJA:2,NOMBRE:'Caja farmacia',DESCRIPCION:'Caja secundaria'}];
+  const APERTURA_CIERRE_CAJA=Array.from({length:22},(_,i)=>({IDAPERTURA:i+1,IDCAJA:i%2+1,FECHA_APERTURA:today,MONTO_APERTURA:300+i*10,ESTADO:i%4?'CERRADA' as const:'ABIERTA' as const}));
+  const MOVIMIENTO_CAJA=Array.from({length:35},(_,i)=>({IDMOVIMIENTO:i+1,IDAPERTURA:i%22+1,TIPO:i%3?'INGRESO' as const:'EGRESO' as const,MONTO:40+i*3,CONCEPTO:i%3?'Venta de productos':'Compra de insumos',FECHA:today}));
+  const ARQUEO_CAJA=Array.from({length:22},(_,i)=>({IDARQUEO:i+1,IDAPERTURA:i+1,FECHA_ARQUEO:today,TOTAL_SISTEMA:300+i*10,TOTAL_FISICO:300+i*10+(i%3-1)*5,DIFERENCIA:(i%3-1)*5}));
+  return {PERSONA,EMPRESA,CLIENTE,ESPECIE,RAZA,MASCOTA,ESPECIALIDAD,EMPLEADO,CITA,FICHA_CLINICA,ANALISIS,TIPO_ANALISIS,CATEGORIA,UNIDAD_MEDIDA,PRODUCTO,ALMACEN,MOVIMIENTO_PRODUCTO,AUDITORIA_STOCK,COMPRA,DETALLE_COMPRA,VENTA,DETALLE_VENTA,BOLETA:VENTA.slice(0,20).map((v,i)=>({IDBOLETA:i+1,IDVENTA:v.IDVENTA,SERIE:'B001',NUMERO:1000+i})),FACTURA:VENTA.slice(0,20).map((v,i)=>({IDFACTURA:i+1,IDVENTA:v.IDVENTA,SERIE:'F001',NUMERO:1000+i})),PROMOCION,CAJA,APERTURA_CIERRE_CAJA,MOVIMIENTO_CAJA,ARQUEO_CAJA};
+}

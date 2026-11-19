@@ -1,0 +1,10 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import VetApp from '@/features/VetApp';
+export function getStaticPaths() {
+  return ['clientes','mascotas','citas','historia-clinica','inventario','compras','ventas','caja','promociones','personal','reportes'].map((slug) => ({ params: { slug } }));
+}
+---
+<Layout title="Castillón Veterinaria | Gestión">
+  <VetApp client:load />
+</Layout>

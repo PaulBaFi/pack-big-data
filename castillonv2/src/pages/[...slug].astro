@@ -1,0 +1,8 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import App from '../components/App';
+export function getStaticPaths() {
+  return ['clientes','productos','operacion','ventas','comprobantes','finanzas','personal','ubicacion','reportes','configuracion'].map(slug => ({ params: { slug } }));
+}
+---
+<MainLayout title="CastillónV2 · Gestión de restaurante"><App client:load /></MainLayout>

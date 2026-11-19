@@ -1,0 +1,28 @@
+---
+import Sidebar from '@/components/layout/Sidebar';
+import Header from '@/components/layout/Header';
+import App from '@/components/App';
+import '@/styles/global.css';
+
+const pathname = Astro.url.pathname;
+---
+
+<html lang="es">
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width"/>
+        
+        <title>SamarImportadora</title>
+    </head>
+    <body>
+        <div class="flex h-screen overflow-hidden bg-slate-50">
+            <Sidebar client:load pathname={pathname} />
+            <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
+                <Header client:load/>
+                <main class="min-h-0 flex-1 overflow-y-auto p-5 md:p-8">
+                    <App client:only="react"/>
+                </main>
+            </div>
+        </div>
+    </body>
+</html>

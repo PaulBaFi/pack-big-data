@@ -1,0 +1,2 @@
+import type { Venta } from '../../types/database';
+export const ventas: Venta[] = Array.from({length:50},(_,i)=>{const neto=[0,1,2].reduce((s,j)=>s+(8990+(((i*3+j)%30))*1375)*(((i*3+j)%4)+1),0);return {DOCUMENTO:`VTA-${String(i+1).padStart(4,'0')}`,FECHA:new Date(2026,(i%12),Math.min(25,(i%27)+1),10,30).toISOString(),ID_CLIENTE:`CLI-${String((i%30)+1).padStart(3,'0')}`,TIPO_DOCUMENTO:i%2?'Boleta':'Factura',ID_VENDEDOR:(i%20)+1,TOTAL_NETO:neto,IMPUESTO:Math.round(neto*.18),TOTAL_DOCUMENTO:neto+Math.round(neto*.18),SUCURSAL_ID:(i%20)+1}});

@@ -1,0 +1,4 @@
+import type { Articulo } from '../../types/database';
+const nombres = ['Licuadora Turbo','Set de Cocina','Audífonos Pro','Organizador Multiuso','Lámpara LED','Botella Térmica','Mochila Urbana','Parlante Bluetooth','Reloj Digital','Cargador Universal','Aspiradora Compacta','Juego de Sábanas','Cafetera Express','Teclado Inalámbrico','Mouse Ergonómico','Balanza Digital','Set de Vasos','Ventilador Portátil','Cámara Interior','Power Bank','Plancha a Vapor','Caja Organizadora','Tostadora Mini','Hervidor Eléctrico','Set de Herramientas','Almohada Viscoelástica','Luz de Emergencia','Cortina Blackout','Robot de Cocina','Dispensador de Agua'];
+const categorias = ['Hogar','Tecnología','Cocina','Organización','Accesorios'];
+export const articulos: Articulo[] = nombres.map((NOMBRE, i) => ({ CODIGO_PRODUCTO:`P-${String(i+1).padStart(3,'0')}`, NOMBRE, CATEGORIA:categorias[i%categorias.length], PRECIO_UNITARIO:Math.round(8990+i*1375), COSTO_UNITARIO:Math.round(5300+i*800) }));
