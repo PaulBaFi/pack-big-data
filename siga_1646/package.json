@@ -13,10 +13,13 @@
   },
   "dependencies": {
     "@astrojs/react": "^7.1.9",
+    "@astrojs/vercel": "^11.0.22",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "astro": "^7.4.12",
     "lucide-react": "^1.75.0",
+    "pg": "^8.23.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

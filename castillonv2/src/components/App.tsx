@@ -77,6 +77,17 @@ export default function App() {
   const [modal, setModal] = useState<string | null>(null);
   const [menu, setMenu] = useState(false);
   useEffect(() => saveData(db), [db]);
+
+  useEffect(() => {
+    fetch("/api/data")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res && res.ok && res.data) {
+          setDb((prev) => ({ ...prev, ...res.data }));
+        }
+      })
+      .catch((err) => console.warn("Using local cache/seed:", err));
+  }, []);
   const go = (v: View) => {
     setView(v);
     setQuery("");

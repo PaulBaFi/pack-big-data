@@ -1008,6 +1008,14 @@ export default function VetApp() {
   const [mobile, setMobile] = useState(false);
   useEffect(() => {
     setDb(loadDB(seedDB));
+    fetch('/api/data')
+      .then((r) => r.json())
+      .then((res) => {
+        if (res && res.ok && res.data) {
+          setDb((prev) => ({ ...prev, ...res.data }));
+        }
+      })
+      .catch((err) => console.warn('Using local cache/seed:', err));
   }, []);
   const current = path.split("/").filter(Boolean)[0] || "";
   const go = (p: string) => {
