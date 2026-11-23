@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import { DashboardOverview } from '../components/DashboardOverview';
+---
+
+<AdminLayout title="Dashboard Ejecutivo | AdminOlap" activeSection="Dashboard General">
+  <DashboardOverview client:load />
+</AdminLayout>

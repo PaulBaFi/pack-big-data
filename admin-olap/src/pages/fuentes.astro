@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import { SourcesMonitor } from '../components/SourcesMonitor';
+---
+
+<AdminLayout title="Monitoreo 4 Fuentes OLTP | AdminOlap" activeSection="Monitoreo Transaccional & Detección de Pendientes">
+  <SourcesMonitor client:load />
+</AdminLayout>

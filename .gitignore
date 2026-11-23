@@ -6,4 +6,4 @@ __pycache__/
 .env
 .env.*
 *.env
-database_scripts/
+database_scripts/*.py

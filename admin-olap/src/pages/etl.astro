@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import { EtlRunnerModal } from '../components/EtlRunnerModal';
+---
+
+<AdminLayout title="Centro de Control ETL | AdminOlap" activeSection="Gestión del Pipeline ETL & Frecuencia">
+  <EtlRunnerModal client:load />
+</AdminLayout>

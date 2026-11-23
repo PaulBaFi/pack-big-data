@@ -1,0 +1,8 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import { AuditScorecard } from '../components/AuditScorecard';
+---
+
+<AdminLayout title="Auditoría & BD OLAP | AdminOlap" activeSection="Auditoría de Calidad & Confirmación de Sincronización">
+  <AuditScorecard client:load />
+</AdminLayout>
