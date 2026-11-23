@@ -28,17 +28,17 @@ export const GET: APIRoute = async ({ request }) => {
       });
     }
 
-    // Load all tables in parallel
+    // Load all tables sequentially to conserve connection slots
     const fullDb: Record<string, any[]> = {};
-    const promises = TABLES.map(async (tbl) => {
+    for (const tbl of TABLES) {
       try {
         const r = await pool.query(`SELECT * FROM "${tbl}"`);
         fullDb[tbl] = r.rows;
-      } catch (e) {
+      } catch (e: any) {
+        console.error(`Error querying table ${tbl}:`, e?.message);
         fullDb[tbl] = [];
       }
-    });
-    await Promise.all(promises);
+    }
 
     return new Response(JSON.stringify({ ok: true, data: fullDb }), {
       status: 200,

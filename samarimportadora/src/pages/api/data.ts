@@ -10,9 +10,9 @@ const TABLE_MAP: Record<string, string> = {
   clientesBuey: 'ClientesBuey',
   detalleVentas: 'DETALLE_VENTA',
   provincias: 'PROVINCIA',
-  prospectos: 'PROSPECTOS',
+  prospectos: 'ProspectosClientesBuey',
   regiones: 'REGION',
-  sucursales: 'SUCURSALES',
+  sucursales: 'SUCURSAL',
   vendedores: 'VENDEDORES',
   ventas: 'VENTAS',
 };
@@ -35,14 +35,15 @@ export const GET: APIRoute = async ({ request }) => {
       });
     }
 
-    // Load main store entities
+    // Load main store entities sequentially to conserve connection slots
     const store: Record<string, any[]> = {};
     for (const [key, tbl] of Object.entries(TABLE_MAP)) {
       try {
         const limit = tbl === 'VENTAS' || tbl === 'DETALLE_VENTA' ? 200 : 1000;
         const r = await pool.query(`SELECT * FROM "${tbl}" LIMIT ${limit}`);
         store[key] = r.rows;
-      } catch (e) {
+      } catch (e: any) {
+        console.error(`Error querying table ${tbl}:`, e?.message);
         store[key] = [];
       }
     }
