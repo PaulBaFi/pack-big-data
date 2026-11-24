@@ -25,8 +25,8 @@ export function getPool(): pg.Pool {
       ssl: {
         rejectUnauthorized: false,
       },
-      max: 2,
-      idleTimeoutMillis: 30000,
+      max: 1,
+      idleTimeoutMillis: 1000,
       connectionTimeoutMillis: 10000,
     });
   }

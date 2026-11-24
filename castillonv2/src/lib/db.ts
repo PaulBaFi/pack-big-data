@@ -1,6 +1,13 @@
 import pg from 'pg';
 const { Pool } = pg;
 
+// Cargar .env en desarrollo local si no esta en process.env
+if (!process.env.DATABASE_URL && typeof process.loadEnvFile === 'function') {
+  try {
+    process.loadEnvFile();
+  } catch {}
+}
+
 let pool: pg.Pool | null = null;
 
 function sanitizeConnectionString(urlStr: string): string {
@@ -25,10 +32,19 @@ export function getPool(): pg.Pool {
       ssl: {
         rejectUnauthorized: false,
       },
-      max: 2,
-      idleTimeoutMillis: 30000,
+      max: 1, // Limitar a 1 conexion para entornos serverless y evitar saturar Aiven
+      idleTimeoutMillis: 1000,
       connectionTimeoutMillis: 10000,
     });
   }
   return pool;
+}
+
+export async function closePool(): Promise<void> {
+  if (pool) {
+    try {
+      await pool.end();
+    } catch {}
+    pool = null;
+  }
 }
