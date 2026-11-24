@@ -77,6 +77,7 @@ export const modules: Module[] = [
     group: "Contrataciones",
     table: "SIG_CONTRATOS",
     description: "Contratos, ítems y detalles",
+    canCreate: true,
   },
   {
     path: "presupuesto",

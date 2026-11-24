@@ -629,7 +629,8 @@ tr:hover td {
   font-weight: 600;
 }
 
-.form-grid input {
+.form-grid input,
+.form-grid select {
   border: 1px solid #dce3ed;
   border-radius: 6px;
   padding: 10px;
@@ -637,7 +638,8 @@ tr:hover td {
   font: inherit;
 }
 
-.form-grid input:focus {
+.form-grid input:focus,
+.form-grid select:focus {
   border-color: #5d87e7;
 }
 

@@ -1,15 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  LayoutDashboard,
-  Boxes,
-  ClipboardList,
-  ShoppingCart,
-  FileText,
-  WalletCards,
-  Warehouse,
-  Landmark,
-  ShieldCheck,
-  BarChart3,
   Search,
   Plus,
   ChevronRight,
@@ -24,7 +14,7 @@ import { tableDefinitions, type MockRow } from "../data/mock/generators";
 import Sidebar from "./layout/Sidebar";
 import DataTable from "./data/DataTable";
 
-import { modules, type Module } from "../config/modules";
+import { modules } from "../config/modules";
 import Dashboard from "./layout/Dashboard";
 import { relatedTables } from "@/utils/relatedTables";
 import RelatedView from "./layout/RelatedView";
@@ -94,10 +84,9 @@ export default function SigaApp() {
 
     const row: MockRow = {};
 
-    fields.forEach(
-      (f, i) =>
-        (row[f] = String(data.get(f) || `Nuevo registro ${rows.length + 1}`)),
-    );
+    fields.forEach((f) => {
+      row[f] = String(data.get(f) || `Nuevo registro ${rows.length + 1}`);
+    });
 
     await create(mod.table, row);
 
@@ -203,8 +192,8 @@ export default function SigaApp() {
           <form className="modal" onSubmit={add}>
             <div className="modal-head">
               <div>
-                <h2>Nuevo registro</h2>
-                <p>{mod.table} · simulación local</p>
+                <h2>{mod.table === "SIG_CONTRATOS" ? "Nuevo contrato" : "Nuevo registro"}</h2>
+                <p>{mod.table}</p>
               </div>
               <button type="button" onClick={() => setCreateModalOpen(false)}>
                 <X />
@@ -217,19 +206,41 @@ export default function SigaApp() {
                 ]
               )
                 .slice(0, 6)
-                .map((f) => (
-                  <label key={f}>
-                    {f}
-                    <input
-                      name={f}
-                      placeholder={`Ingrese ${f.toLowerCase()}`}
-                      required={
-                        f ===
-                        tableDefinitions.find((x) => x[0] === mod.table)?.[1][0]
-                      }
-                    />
-                  </label>
-                ))}
+                .map((f) => {
+                  const isContract = mod.table === "SIG_CONTRATOS";
+                  const labels: Record<string, string> = {
+                    ANO_EJE: "Año de ejecución",
+                    SEC_EJEC: "Unidad ejecutora",
+                    TIPO_CONTRATO: "Tipo de contrato",
+                    NRO_CONTRATO: "Número de contrato",
+                    TIPO_BIEN: "Tipo de bien",
+                  };
+
+                  return (
+                    <label key={f}>
+                      {isContract ? labels[f] : f}
+                      {isContract && (f === "TIPO_CONTRATO" || f === "TIPO_BIEN") ? (
+                        <select name={f} required defaultValue="">
+                          <option value="" disabled>Seleccione una opción</option>
+                          <option value="B">Bien</option>
+                          <option value="S">Servicio</option>
+                        </select>
+                      ) : (
+                        <input
+                          name={f}
+                          type={isContract && (f === "ANO_EJE" || f === "SEC_EJEC") ? "number" : "text"}
+                          min={isContract && f === "ANO_EJE" ? 2000 : undefined}
+                          max={isContract && f === "ANO_EJE" ? 2100 : undefined}
+                          placeholder={isContract ? `Ingrese ${labels[f].toLowerCase()}` : `Ingrese ${f.toLowerCase()}`}
+                          required={
+                            isContract ||
+                            f === tableDefinitions.find((x) => x[0] === mod.table)?.[1][0]
+                          }
+                        />
+                      )}
+                    </label>
+                  );
+                })}
             </div>
             <div className="modal-actions">
               <button
