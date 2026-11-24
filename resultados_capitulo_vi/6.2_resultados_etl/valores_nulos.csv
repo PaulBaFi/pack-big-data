@@ -1,0 +1,21 @@
+﻿fuente,tabla,campo,evaluados,nulos,vacios,porcentaje_nulos,tratamiento_aplicado,nulos_restantes
+Castillon V2,"""VENTAS""",FECHAVENTA,127,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+Castillon V2,"""VENTAS""",DOCUMENTO,127,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+Castillon V2,"""VENTAS""",SUBTOTOTAL,127,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+Castillon V2,"""VENTAS""",IGV,127,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+Castillon V2,"""VENTAS""",TOTALPAGAR,127,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+Castillon Veterinaria,"""VENTA""",FECHA,81,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+Castillon Veterinaria,"""VENTA""",IDVENTA,81,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+Castillon Veterinaria,"""VENTA""",SUBTOTAL,81,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+Castillon Veterinaria,"""VENTA""",IGV,81,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+Castillon Veterinaria,"""VENTA""",MONTOTOTAL,81,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+Samar Importadora,"""VENTAS""",FECHA,10002,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+Samar Importadora,"""VENTAS""",DOCUMENTO,10002,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+Samar Importadora,"""VENTAS""",TOTAL_NETO,10002,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+Samar Importadora,"""VENTAS""",IMPUESTO,10002,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+Samar Importadora,"""VENTAS""",TOTAL_DOCUMENTO,10002,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+SIGA 1646,"""SIG_ORDEN_ADQUISICION""",ANO_EJE,16205,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+SIGA 1646,"""SIG_ORDEN_ADQUISICION""",NRO_ORDEN,16205,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+SIGA 1646,"""SIG_ORDEN_ADQUISICION""",FECHA_ORDEN,16205,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+SIGA 1646,"""SIG_ORDEN_ADQUISICION""",PROVEEDOR,16205,4085,0,25.208269052761494,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL
+SIGA 1646,"""SIG_ORDEN_ADQUISICION""",TOTAL_FACT_SOLES,16205,0,0,0.0,"Según campo: valor derivado, predeterminado o descarte por fecha",No disponible por campo en log ETL

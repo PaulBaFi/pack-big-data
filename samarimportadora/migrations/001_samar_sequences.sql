@@ -9,6 +9,7 @@ CREATE SEQUENCE IF NOT EXISTS samar_provincia_seq;
 CREATE SEQUENCE IF NOT EXISTS samar_comuna_seq;
 CREATE SEQUENCE IF NOT EXISTS samar_sucursal_seq;
 CREATE SEQUENCE IF NOT EXISTS samar_cliente_buey_seq;
+
 CREATE SEQUENCE IF NOT EXISTS samar_prospecto_seq;
 CREATE SEQUENCE IF NOT EXISTS samar_documento_venta_seq;
 

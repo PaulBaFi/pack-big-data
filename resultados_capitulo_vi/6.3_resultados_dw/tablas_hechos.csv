@@ -1,0 +1,3 @@
+﻿tabla,proceso_negocio,granularidad,registros,fecha_min,fecha_max
+fact_ventas_privadas,Ventas privadas,Una fila por venta/documento extraído,10209,2015-01-02T05:00:00.000Z,2026-11-24T05:00:00.000Z
+fact_compras_estatales,Compras estatales,Una fila por orden de adquisición extraída,16205,2016-06-16T05:00:00.000Z,2026-11-24T05:00:00.000Z

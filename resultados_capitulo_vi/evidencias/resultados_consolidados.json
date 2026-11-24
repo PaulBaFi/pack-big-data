@@ -1,0 +1,300 @@
+{
+  "metadata": {
+    "started_at": "2026-11-24T20:23:28.021Z",
+    "finished_at": "2026-11-24T20:23:39.158Z",
+    "mode": "solo lectura",
+    "etl_executed": false,
+    "synthetic_test_data_used": false
+  },
+  "etl": [
+    {
+      "fuente": "Castillon V2",
+      "tabla_origen": "VENTAS",
+      "registros_disponibles": 127,
+      "registros_extraidos": 126,
+      "diferencia": 1,
+      "tabla_destino": "fact_ventas_privadas"
+    },
+    {
+      "fuente": "Castillon Veterinaria",
+      "tabla_origen": "VENTA",
+      "registros_disponibles": 81,
+      "registros_extraidos": 81,
+      "diferencia": 0,
+      "tabla_destino": "fact_ventas_privadas"
+    },
+    {
+      "fuente": "Samar Importadora",
+      "tabla_origen": "VENTAS",
+      "registros_disponibles": 10002,
+      "registros_extraidos": 10002,
+      "diferencia": 0,
+      "tabla_destino": "fact_ventas_privadas"
+    },
+    {
+      "fuente": "SIGA 1646",
+      "tabla_origen": "SIG_ORDEN_ADQUISICION",
+      "registros_disponibles": 16205,
+      "registros_extraidos": 16205,
+      "diferencia": 0,
+      "tabla_destino": "fact_compras_estatales"
+    }
+  ],
+  "hechos": [
+    {
+      "tabla": "fact_ventas_privadas",
+      "registros": 10209,
+      "fecha_min": "2015-01-02T05:00:00.000Z",
+      "fecha_max": "2026-11-24T05:00:00.000Z",
+      "proceso_negocio": "Ventas privadas",
+      "granularidad": "Una fila por venta/documento extraído"
+    },
+    {
+      "tabla": "fact_compras_estatales",
+      "registros": 16205,
+      "fecha_min": "2016-06-16T05:00:00.000Z",
+      "fecha_max": "2026-11-24T05:00:00.000Z",
+      "proceso_negocio": "Compras estatales",
+      "granularidad": "Una fila por orden de adquisición extraída"
+    }
+  ],
+  "dimensiones": [
+    {
+      "tabla": "dim_tiempo",
+      "registros": 4383,
+      "clave_primaria": "id_tiempo",
+      "atributos_principales": "fecha, año, mes, trimestre, semestre",
+      "tabla_hechos_relacionada": "Ambas tablas de hechos"
+    },
+    {
+      "tabla": "dim_empresa",
+      "registros": 1377,
+      "clave_primaria": "id_empresa",
+      "atributos_principales": "código origen, razón social, estrato, MYPE",
+      "tabla_hechos_relacionada": "Ambas tablas de hechos"
+    },
+    {
+      "tabla": "dim_ubicacion",
+      "registros": 3,
+      "clave_primaria": "id_ubicacion",
+      "atributos_principales": "departamento, provincia, distrito, país",
+      "tabla_hechos_relacionada": "Ambas tablas de hechos"
+    },
+    {
+      "tabla": "dim_categoria_item",
+      "registros": 6,
+      "clave_primaria": "id_categoria",
+      "atributos_principales": "código, nombre, categoría, rubro",
+      "tabla_hechos_relacionada": "Ambas tablas de hechos"
+    },
+    {
+      "tabla": "dim_tipo_pago",
+      "registros": 7,
+      "clave_primaria": "id_tipo_pago",
+      "atributos_principales": "método, tipo transacción",
+      "tabla_hechos_relacionada": "fact_ventas_privadas"
+    }
+  ],
+  "integridad": [
+    {
+      "codigo": "INT-001",
+      "control": "Huérfanos tiempo ventas",
+      "registros_evaluados": 10209,
+      "incidencias": 0,
+      "cumplimiento_pct": 100.0,
+      "estado": "APROBADO"
+    },
+    {
+      "codigo": "INT-002",
+      "control": "Huérfanos empresa ventas",
+      "registros_evaluados": 10209,
+      "incidencias": 0,
+      "cumplimiento_pct": 100.0,
+      "estado": "APROBADO"
+    },
+    {
+      "codigo": "INT-003",
+      "control": "Huérfanos proveedor compras",
+      "registros_evaluados": 16205,
+      "incidencias": 0,
+      "cumplimiento_pct": 100.0,
+      "estado": "APROBADO"
+    },
+    {
+      "codigo": "INT-004",
+      "control": "Duplicados hechos ventas",
+      "registros_evaluados": 10209,
+      "incidencias": 0,
+      "cumplimiento_pct": 100.0,
+      "estado": "APROBADO"
+    },
+    {
+      "codigo": "INT-005",
+      "control": "Duplicados hechos compras",
+      "registros_evaluados": 16205,
+      "incidencias": 0,
+      "cumplimiento_pct": 100.0,
+      "estado": "APROBADO"
+    },
+    {
+      "codigo": "INT-006",
+      "control": "Importes inválidos ventas",
+      "registros_evaluados": 10209,
+      "incidencias": 0,
+      "cumplimiento_pct": 100.0,
+      "estado": "APROBADO"
+    },
+    {
+      "codigo": "INT-007",
+      "control": "Importes inválidos compras",
+      "registros_evaluados": 16205,
+      "incidencias": 0,
+      "cumplimiento_pct": 100.0,
+      "estado": "APROBADO"
+    },
+    {
+      "codigo": "INT-008",
+      "control": "Clasificaciones inválidas",
+      "registros_evaluados": 5,
+      "incidencias": 0,
+      "cumplimiento_pct": 100.0,
+      "estado": "APROBADO"
+    }
+  ],
+  "estadistica": [
+    {
+      "fuente": "Castillon V2",
+      "variable": "monto_total",
+      "n": 126,
+      "total": 9408.33,
+      "media": 74.66928571428572,
+      "mediana": 42.48,
+      "desviacion_estandar": 95.25283990037104,
+      "minimo": 4.0,
+      "q1": 17.7,
+      "q3": 86.72999999999999,
+      "maximo": 490.88,
+      "moneda": "PEN"
+    },
+    {
+      "fuente": "Castillon Veterinaria",
+      "variable": "monto_total",
+      "n": 81,
+      "total": 12281.050000000001,
+      "media": 151.6179012345679,
+      "mediana": 155.64,
+      "desviacion_estandar": 65.51680928807602,
+      "minimo": 42.72,
+      "q1": 95.34,
+      "q3": 197.96,
+      "maximo": 288.23,
+      "moneda": "PEN"
+    },
+    {
+      "fuente": "Samar Importadora",
+      "variable": "monto_total",
+      "n": 10002,
+      "total": 145223887.0,
+      "media": 14519.484803039391,
+      "mediana": 6304.5,
+      "desviacion_estandar": 27303.18211476933,
+      "minimo": 334.0,
+      "q1": 3213.0,
+      "q3": 13864.0,
+      "maximo": 235180.0,
+      "moneda": "CLP no confirmado"
+    },
+    {
+      "fuente": "SIGA 1646",
+      "variable": "monto_adjudicado",
+      "n": 16205,
+      "total": 62540042.580000006,
+      "media": 3859.3053119407596,
+      "mediana": 1050.0,
+      "desviacion_estandar": 9452.18371904232,
+      "minimo": 0.6,
+      "q1": 252.0,
+      "q3": 4250.0,
+      "maximo": 399000.0,
+      "moneda": "PEN"
+    }
+  ],
+  "atipicos": [
+    {
+      "fuente": "Castillon V2",
+      "variable": "monto_total",
+      "q1": 17.7,
+      "q3": 86.72999999999999,
+      "iqr": 69.02999999999999,
+      "limite_inferior": -85.84499999999998,
+      "limite_superior": 190.27499999999998,
+      "atipicos": 10,
+      "porcentaje": 7.936507936507936
+    },
+    {
+      "fuente": "Castillon Veterinaria",
+      "variable": "monto_total",
+      "q1": 95.34,
+      "q3": 197.96,
+      "iqr": 102.62,
+      "limite_inferior": -58.59,
+      "limite_superior": 351.89,
+      "atipicos": 0,
+      "porcentaje": 0.0
+    },
+    {
+      "fuente": "Samar Importadora",
+      "variable": "monto_total",
+      "q1": 3213.0,
+      "q3": 13864.0,
+      "iqr": 10651.0,
+      "limite_inferior": -12763.5,
+      "limite_superior": 29840.5,
+      "atipicos": 916,
+      "porcentaje": 9.158168366326734
+    },
+    {
+      "fuente": "SIGA 1646",
+      "variable": "monto_adjudicado",
+      "q1": 252.0,
+      "q3": 4250.0,
+      "iqr": 3998.0,
+      "limite_inferior": -5745.0,
+      "limite_superior": 10247.0,
+      "atipicos": 1463,
+      "porcentaje": 9.028077753779698
+    }
+  ],
+  "correlaciones": [
+    {
+      "variable_x": "transacciones mensuales",
+      "variable_y": "monto mensual",
+      "fuente": "Castillon V2",
+      "metodo": "Spearman",
+      "observaciones": 6,
+      "coeficiente": 0.8857142857142858,
+      "valor_p": 0.01884548104956266,
+      "interpretacion": "Asociación, no causalidad"
+    },
+    {
+      "variable_x": "transacciones mensuales",
+      "variable_y": "monto mensual",
+      "fuente": "SIGA 1646",
+      "metodo": "Spearman",
+      "observaciones": 109,
+      "coeficiente": 0.7893235739163036,
+      "valor_p": 2.0840481619857254e-24,
+      "interpretacion": "Asociación, no causalidad"
+    },
+    {
+      "variable_x": "transacciones mensuales",
+      "variable_y": "monto mensual",
+      "fuente": "Samar Importadora",
+      "metodo": "Spearman",
+      "observaciones": 13,
+      "coeficiente": 0.6978021978021978,
+      "valor_p": 0.008000717411226549,
+      "interpretacion": "Asociación, no causalidad"
+    }
+  ]
+}

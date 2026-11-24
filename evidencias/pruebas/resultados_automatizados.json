@@ -1,0 +1,206 @@
+{
+  "runId": "qa_bdd_1795549798192_29384",
+  "startedWithControlledSchemas": true,
+  "generatedAt": "2026-11-24T19:50:09.074Z",
+  "fatalError": null,
+  "results": [
+    {
+      "id": "OLTP-001",
+      "component": "OLTP",
+      "description": "Inserción de una venta válida",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 260 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:01.040Z"
+    },
+    {
+      "id": "OLTP-002",
+      "component": "OLTP",
+      "description": "Actualización persistente de una venta",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 252 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:01.293Z"
+    },
+    {
+      "id": "OLTP-003",
+      "component": "OLTP",
+      "description": "Eliminación de una venta",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 247 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:01.540Z"
+    },
+    {
+      "id": "OLTP-004",
+      "component": "OLTP",
+      "description": "Rollback de una transacción fallida",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 491 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:02.032Z"
+    },
+    {
+      "id": "OLTP-005",
+      "component": "OLTP",
+      "description": "Rechazo de una clave foránea inexistente",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 123 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:02.155Z"
+    },
+    {
+      "id": "OLTP-006",
+      "component": "OLTP",
+      "description": "Serialización de actualizaciones concurrentes",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 2190 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:04.345Z"
+    },
+    {
+      "id": "ETL-001",
+      "component": "ETL",
+      "description": "Extracción de registros de la fuente",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 135 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:04.748Z"
+    },
+    {
+      "id": "ETL-002",
+      "component": "ETL",
+      "description": "Limpieza de espacios y normalización de texto",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 149 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:04.897Z"
+    },
+    {
+      "id": "ETL-003",
+      "component": "ETL",
+      "description": "Carga idempotente sin duplicados",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 1909 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:06.806Z"
+    },
+    {
+      "id": "ETL-004",
+      "component": "ETL",
+      "description": "Tratamiento de valores nulos",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 114 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:06.920Z"
+    },
+    {
+      "id": "ETL-005",
+      "component": "ETL",
+      "description": "Transformación de fecha a clave dimensional",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 130 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:07.050Z"
+    },
+    {
+      "id": "ETL-006",
+      "component": "ETL",
+      "description": "Carga de dimensiones y hechos",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 253 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:07.303Z"
+    },
+    {
+      "id": "DW-001",
+      "component": "Data Warehouse",
+      "description": "Conteo de registros cargados",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 129 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:07.432Z"
+    },
+    {
+      "id": "DW-002",
+      "component": "Data Warehouse",
+      "description": "Integridad referencial del esquema estrella",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 129 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:07.561Z"
+    },
+    {
+      "id": "DW-003",
+      "component": "Data Warehouse",
+      "description": "Atributos válidos en dimensiones",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 127 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:07.688Z"
+    },
+    {
+      "id": "DW-004",
+      "component": "Data Warehouse",
+      "description": "Medidas válidas en tabla de hechos",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 133 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:07.821Z"
+    },
+    {
+      "id": "DW-005",
+      "component": "Data Warehouse",
+      "description": "Consistencia entre detalle y total almacenado",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 130 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:07.952Z"
+    },
+    {
+      "id": "OLAP-001",
+      "component": "OLAP",
+      "description": "Agregación SUM de ventas",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 125 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:08.077Z"
+    },
+    {
+      "id": "OLAP-002",
+      "component": "OLAP",
+      "description": "Filtro por categoría normalizada",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 120 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:08.197Z"
+    },
+    {
+      "id": "OLAP-003",
+      "component": "OLAP",
+      "description": "Consulta multidimensional por tiempo y categoría",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 143 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:08.340Z"
+    },
+    {
+      "id": "OLAP-004",
+      "component": "OLAP",
+      "description": "Drill-down anual a mensual",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 157 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:08.497Z"
+    },
+    {
+      "id": "OLAP-005",
+      "component": "OLAP",
+      "description": "Conciliación de conteos y montos",
+      "status": "APROBADO",
+      "obtained": "Comportamiento verificado en 289 ms.",
+      "evidence": "",
+      "executedAt": "2026-11-24T19:50:08.787Z"
+    }
+  ]
+}

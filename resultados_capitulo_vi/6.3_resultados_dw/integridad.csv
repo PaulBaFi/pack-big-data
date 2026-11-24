@@ -1,0 +1,9 @@
+﻿codigo,control,registros_evaluados,incidencias,cumplimiento_pct,estado
+INT-001,Huérfanos tiempo ventas,10209,0,100.0,APROBADO
+INT-002,Huérfanos empresa ventas,10209,0,100.0,APROBADO
+INT-003,Huérfanos proveedor compras,16205,0,100.0,APROBADO
+INT-004,Duplicados hechos ventas,10209,0,100.0,APROBADO
+INT-005,Duplicados hechos compras,16205,0,100.0,APROBADO
+INT-006,Importes inválidos ventas,10209,0,100.0,APROBADO
+INT-007,Importes inválidos compras,16205,0,100.0,APROBADO
+INT-008,Clasificaciones inválidas,5,0,100.0,APROBADO

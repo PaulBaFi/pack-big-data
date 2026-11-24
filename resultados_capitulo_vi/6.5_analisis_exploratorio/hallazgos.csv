@@ -1,0 +1,6 @@
+﻿codigo,descripcion,indicador,resultado_cuantitativo,fuente,periodo,evidencia,interpretacion,limitacion,utilidad
+H-001,Importes fuera de límites IQR,Atípicos IQR,10 (7.94%),Castillon V2,Cobertura completa disponible,datos_atipicos.csv,Operaciones inusuales que requieren contexto; no se eliminan,IQR estadístico no prueba error,Priorización de revisión
+H-002,Importes fuera de límites IQR,Atípicos IQR,0 (0.00%),Castillon Veterinaria,Cobertura completa disponible,datos_atipicos.csv,Operaciones inusuales que requieren contexto; no se eliminan,IQR estadístico no prueba error,Priorización de revisión
+H-003,Importes fuera de límites IQR,Atípicos IQR,916 (9.16%),Samar Importadora,Cobertura completa disponible,datos_atipicos.csv,Operaciones inusuales que requieren contexto; no se eliminan,IQR estadístico no prueba error,Priorización de revisión
+H-004,Importes fuera de límites IQR,Atípicos IQR,1463 (9.03%),SIGA 1646,Cobertura completa disponible,datos_atipicos.csv,Operaciones inusuales que requieren contexto; no se eliminan,IQR estadístico no prueba error,Priorización de revisión
+H-005,Diferencia origen-destino Castillon V2,Conciliación de filas,1 fila,Castillon V2,Fecha de extracción,registros_extraidos.csv,El ETL omite fecha nula,No implica eliminación física del origen,Mejorar calidad de fechas

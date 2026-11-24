@@ -1,0 +1,2 @@
+﻿fuente,registros_descartados,motivo,regla_aplicada
+Castillon V2,1,Fecha nula: el ETL omite filas sin fecha,if (!f) continue

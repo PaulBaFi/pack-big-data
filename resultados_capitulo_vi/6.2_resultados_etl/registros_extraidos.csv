@@ -1,0 +1,5 @@
+﻿fuente,tabla_origen,registros_disponibles,registros_extraidos,diferencia,tabla_destino
+Castillon V2,VENTAS,127,126,1,fact_ventas_privadas
+Castillon Veterinaria,VENTA,81,81,0,fact_ventas_privadas
+Samar Importadora,VENTAS,10002,10002,0,fact_ventas_privadas
+SIGA 1646,SIG_ORDEN_ADQUISICION,16205,16205,0,fact_compras_estatales

@@ -1,0 +1,6 @@
+﻿tabla,registros,clave_primaria,atributos_principales,tabla_hechos_relacionada
+dim_tiempo,4383,id_tiempo,"fecha, año, mes, trimestre, semestre",Ambas tablas de hechos
+dim_empresa,1377,id_empresa,"código origen, razón social, estrato, MYPE",Ambas tablas de hechos
+dim_ubicacion,3,id_ubicacion,"departamento, provincia, distrito, país",Ambas tablas de hechos
+dim_categoria_item,6,id_categoria,"código, nombre, categoría, rubro",Ambas tablas de hechos
+dim_tipo_pago,7,id_tipo_pago,"método, tipo transacción",fact_ventas_privadas

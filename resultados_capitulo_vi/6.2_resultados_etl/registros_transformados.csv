@@ -1,0 +1,5 @@
+﻿fuente,registros_extraidos,transformacion_aplicada,registros_afectados,resultado
+Castillon V2,126,Fecha→YYYYMMDD; importes→numérico; empresa→estrato; claves dimensionales,No instrumentado,"Hechos cargados, salvo filas descartadas"
+Castillon Veterinaria,81,Fecha→YYYYMMDD; importes→numérico; empresa→estrato; claves dimensionales,No instrumentado,"Hechos cargados, salvo filas descartadas"
+Samar Importadora,10002,Fecha→YYYYMMDD; importes→numérico; empresa→estrato; claves dimensionales,No instrumentado,"Hechos cargados, salvo filas descartadas"
+SIGA 1646,16205,Fecha→YYYYMMDD; importes→numérico; empresa→estrato; claves dimensionales,No instrumentado,"Hechos cargados, salvo filas descartadas"

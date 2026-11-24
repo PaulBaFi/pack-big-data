@@ -1,0 +1,4 @@
+﻿variable_x,variable_y,fuente,metodo,observaciones,coeficiente,valor_p,interpretacion
+transacciones mensuales,monto mensual,Castillon V2,Spearman,6,0.8857142857142858,0.01884548104956266,"Asociación, no causalidad"
+transacciones mensuales,monto mensual,SIGA 1646,Spearman,109,0.7893235739163036,2.0840481619857254e-24,"Asociación, no causalidad"
+transacciones mensuales,monto mensual,Samar Importadora,Spearman,13,0.6978021978021978,0.008000717411226549,"Asociación, no causalidad"

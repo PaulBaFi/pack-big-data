@@ -1,0 +1,29 @@
+suite,historia,criterio,caso,escenario,automatizacion
+S-OLTP,HU-OLTP-01,CA-OLTP-01,OLTP-001,Insertar una venta válida,Automatizada
+S-OLTP,HU-OLTP-01,CA-OLTP-02,OLTP-002,Actualizar una venta existente,Automatizada
+S-OLTP,HU-OLTP-01,CA-OLTP-03,OLTP-003,Eliminar una venta existente,Automatizada
+S-OLTP,HU-OLTP-02,CA-OLTP-04,OLTP-004,Revertir una transacción,Automatizada
+S-OLTP,HU-OLTP-02,CA-OLTP-05,OLTP-005,Rechazar una referencia inexistente,Automatizada
+S-OLTP,HU-OLTP-02,CA-OLTP-06,OLTP-006,Serializar actualizaciones concurrentes,Automatizada
+S-ETL,HU-ETL-01,CA-ETL-01,ETL-001,Extraer ventas de la fuente,Automatizada
+S-ETL,HU-ETL-01,CA-ETL-02,ETL-002,Limpiar texto extraído,Automatizada
+S-ETL,HU-ETL-01,CA-ETL-03,ETL-003,Evitar duplicados en la carga,Automatizada
+S-ETL,HU-ETL-01,CA-ETL-04,ETL-004,Resolver valores nulos,Automatizada
+S-ETL,HU-ETL-01,CA-ETL-05,ETL-005,Transformar fecha a clave dimensional,Automatizada
+S-ETL,HU-ETL-01,CA-ETL-06,ETL-006,Cargar dimensiones y hechos,Automatizada
+S-DW,HU-DW-01,CA-DW-01,DW-001,Verificar el número de hechos,Automatizada
+S-DW,HU-DW-01,CA-DW-02,DW-002,Verificar integridad referencial dimensional,Automatizada
+S-DW,HU-DW-01,CA-DW-03,DW-003,Verificar atributos de dimensiones,Automatizada
+S-DW,HU-DW-01,CA-DW-04,DW-004,Verificar medidas de hechos,Automatizada
+S-DW,HU-DW-01,CA-DW-05,DW-005,Verificar consistencia del total almacenado,Automatizada
+S-OLAP,HU-OLAP-01,CA-OLAP-01,OLAP-001,Agregar ventas,Automatizada
+S-OLAP,HU-OLAP-01,CA-OLAP-02,OLAP-002,Filtrar por categoría,Automatizada
+S-OLAP,HU-OLAP-01,CA-OLAP-03,OLAP-003,Consultar por tiempo y categoría,Automatizada
+S-OLAP,HU-OLAP-01,CA-OLAP-04,OLAP-004,Desglosar año a mes,Automatizada
+S-OLAP,HU-OLAP-01,CA-OLAP-05,OLAP-005,Conciliar origen y cubo analítico,Automatizada
+S-PBI,HU-PBI-01,CA-PBI-01,PBI-001,Validar conexión al Data Warehouse,Manual
+S-PBI,HU-PBI-01,CA-PBI-02,PBI-002,Validar relaciones del modelo,Manual
+S-PBI,HU-PBI-01,CA-PBI-03,PBI-003,Validar medidas DAX implementadas,Manual
+S-PBI,HU-PBI-01,CA-PBI-04,PBI-004,Validar filtros del reporte,Manual
+S-PBI,HU-PBI-01,CA-PBI-05,PBI-005,Validar indicadores y visualizaciones,Manual
+S-E2E,HU-E2E-01,CA-E2E-01,E2E-001,Conciliar una venta desde OLTP hasta Power BI,Mixta
