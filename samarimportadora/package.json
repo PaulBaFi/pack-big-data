@@ -9,6 +9,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "check": "astro check",
+    "db:migrate": "node scripts/migrate.cjs",
+    "db:migrate:check": "node scripts/migrate.cjs --check",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "preview": "astro preview",
     "astro": "astro"

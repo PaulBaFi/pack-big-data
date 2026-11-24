@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
 import { getPool } from '@/lib/db';
+import { lineTotal, saleTotals } from '@/utils/calculations';
 export const prerender = false;
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
-const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 export const GET: APIRoute = async ({ request }) => {
   const client = await getPool().connect();
@@ -37,8 +37,9 @@ export const POST: APIRoute = async ({ request }) => {
     const products = await client.query('SELECT "CODIGO_PRODUCTO", "PRECIO_UNITARIO" FROM "ARTICULOS" WHERE "CODIGO_PRODUCTO" = ANY($1::text[]) FOR SHARE', [codes]);
     const prices = new Map(products.rows.map((row) => [row.CODIGO_PRODUCTO, Number(row.PRECIO_UNITARIO)]));
     if (prices.size !== new Set(codes).size) throw new Error('Uno o más artículos no existen');
-    const details = lines.map((line: any) => { const price = prices.get(String(line.CODIGO_PRODUCTO))!; const quantity = Number(line.CANTIDAD); return { code: String(line.CODIGO_PRODUCTO), quantity, price, total: money(price * quantity) }; });
-    const net = money(details.reduce((sum, line) => sum + line.total, 0)), tax = money(net * 0.18), total = money(net + tax);
+    const details = lines.map((line: any) => { const price = prices.get(String(line.CODIGO_PRODUCTO))!; const quantity = Number(line.CANTIDAD); return { code: String(line.CODIGO_PRODUCTO), quantity, price, total: lineTotal(price, quantity) }; });
+    const totals = saleTotals(details.map((line) => ({ PRECIO_UNITARIO: line.price, CANTIDAD: line.quantity })));
+    const net = totals.TOTAL_NETO, tax = totals.IMPUESTO, total = totals.TOTAL_DOCUMENTO;
     const sequence = await client.query("SELECT nextval('samar_documento_venta_seq')::bigint value");
     const document = `VTA-${String(sequence.rows[0].value).padStart(4, '0')}`;
     const sale = await client.query('INSERT INTO "VENTAS" ("DOCUMENTO","FECHA","ID_CLIENTE","TIPO_DOCUMENTO","ID_VENDEDOR","TOTAL_NETO","IMPUESTO","TOTAL_DOCUMENTO","SUCURSAL_ID") VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4, $5, $6, $7, $8) RETURNING *', [document, body.ID_CLIENTE, body.TIPO_DOCUMENTO, Number(body.ID_VENDEDOR), net, tax, total, Number(body.SUCURSAL_ID)]);

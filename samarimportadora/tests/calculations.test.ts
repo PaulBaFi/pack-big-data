@@ -12,3 +12,9 @@ test('calcula neto, impuesto 18% y total de una venta', () => {
     { PRECIO_UNITARIO: 50, CANTIDAD: 1 },
   ]), { TOTAL_NETO: 250, IMPUESTO: 45, TOTAL_DOCUMENTO: 295 });
 });
+
+test('redondea el impuesto a la unidad monetaria admitida por PostgreSQL', () => {
+  assert.deepEqual(saleTotals([
+    { PRECIO_UNITARIO: 1620, CANTIDAD: 1 },
+  ]), { TOTAL_NETO: 1620, IMPUESTO: 292, TOTAL_DOCUMENTO: 1912 });
+});

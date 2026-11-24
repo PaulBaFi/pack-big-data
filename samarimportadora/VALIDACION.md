@@ -12,9 +12,10 @@
 ## Preparación de base de ensayo
 
 1. Crear un clon o esquema de ensayo de la base Samar. No usar la base histórica para pruebas destructivas.
-2. Ejecutar `migrations/001_samar_sequences.sql`.
-3. Configurar `DATABASE_URL` exclusivamente en el entorno, nunca en el repositorio.
-4. Ejecutar `npm run check`, `npm test` y `npm run build`.
+2. Ejecutar `npm run db:migrate`. El comando aplica `migrations/001_samar_sequences.sql` de forma idempotente y verifica las diez secuencias requeridas.
+3. Ejecutar `npm run db:migrate:check` en la validación posterior al despliegue.
+4. Configurar `DATABASE_URL` exclusivamente en el entorno, nunca en el repositorio.
+5. Ejecutar `npm run check`, `npm test` y `npm run build`.
 
 ## Matriz de pruebas
 
