@@ -564,14 +564,17 @@ function NewSale({ store, setStore }: { store: any; setStore: any }) {
           + Agregar línea
         </Button>
         <div className="mt-8 ml-auto max-w-xs space-y-2 border-t border-slate-200 pt-4 text-right text-sm">
-          <div>
-            Neto: <b>{money(totals.TOTAL_NETO)}</b>
+          <div className="flex gap-2 items-center justify-between">
+            <span>Neto:</span>
+            <b>{money(totals.TOTAL_NETO)}</b>
           </div>
-          <div>
-            Impuesto 18%: <b>{money(totals.IMPUESTO)}</b>
+          <div className="flex gap-2 items-center justify-between">
+            <span>Impuesto 18%:</span> 
+            <b>{money(totals.IMPUESTO)}</b>
           </div>
-          <div className="text-lg">
-            Total: <b>{money(totals.TOTAL_DOCUMENTO)}</b>
+          <div className="text-lg flex gap-2 items-center justify-between">
+            <span>Total:</span> 
+            <b>{money(totals.TOTAL_DOCUMENTO)}</b>
           </div>
           <Button onClick={save} className="mt-3 w-full bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 duration-100">
             Guardar venta
