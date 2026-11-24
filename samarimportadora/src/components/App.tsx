@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Plus,
   Users,
@@ -30,10 +30,6 @@ import PageHeader from "./layout/PageHeader";
 import { useStore } from "../hooks/useLocalStorage";
 import { money, date } from "../utils/formatters";
 import { lineTotal, saleTotals } from "../utils/calculations";
-import type {
-  Venta,
-  DetalleVenta,
-} from "../types/database";
 
 const Card = ({ children }: { children: any }) => (
   <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -45,8 +41,8 @@ function Form({
   onSave,
   onCancel,
 }: {
-  fields: { label: string; name: string; type?: string; value?: any }[];
-  onSave: (v: any) => void;
+  fields: { label: string; name: string; type?: string; value?: any; options?: { value: string | number; label: string }[] }[];
+  onSave: (v: any) => void | Promise<void>;
   onCancel: () => void;
 }) {
   const [v, setV] = useState<any>(
@@ -57,12 +53,7 @@ function Form({
       {fields.map((f) => (
         <label key={f.name} className="text-sm font-medium text-slate-600">
           {f.label}
-          <input
-            type={f.type || "text"}
-            value={v[f.name]}
-            onChange={(e) => setV({ ...v, [f.name]: e.target.value })}
-            className="mt-1 w-full rounded-lg border border-slate-200 p-2.5 font-normal outline-none focus:border-emerald-500"
-          />
+          {f.options ? <select value={v[f.name]} required onChange={(e) => setV({ ...v, [f.name]: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 p-2.5 font-normal"> <option value="">Seleccione…</option>{f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select> : <input type={f.type || "text"} value={v[f.name]} onChange={(e) => setV({ ...v, [f.name]: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-200 p-2.5 font-normal outline-none focus:border-emerald-500" />}
         </label>
       ))}
       <div className="flex justify-end gap-2 sm:col-span-2">
@@ -86,11 +77,11 @@ function CrudPage({
   title,
   description,
 }: {
-  kind: "clientes" | "articulos" | "vendedores" | "sucursales";
+  kind: "clientes" | "articulos" | "vendedores" | "sucursales" | "prospectos" | "clientesBuey";
   title: string;
   description: string;
 }) {
-  const [store, setStore] = useStore();
+  const [store, , state] = useStore();
   const [q, setQ] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -124,12 +115,17 @@ function CrudPage({
               ["TIPO_ CAPACITACION", "Tipo capacitación"],
               ["HORAS_CAPACITACION", "Horas capacitación"],
             ]
-          : [
+          : kind === "sucursales" ? [
               ["SUCURSAL_ID", "ID Sucursal"],
               ["NOMBRE_SUCURSAL", "Nombre sucursal"],
               ["COMUNA_ID", "ID Comuna"],
+            ] : kind === "prospectos" ? [
+              ["NRO_CLIENTE", "N.º interno"], ["ID_CLIENTE", "Código comercial"], ["NOMBRE", "Nombre"], ["APELLIDO", "Apellido"], ["EMAIL", "Email"], ["EDAD", "Edad"], ["RESIDENCIA", "Residencia"], ["ORIGEN", "Origen"], ["FIDELIDAD", "Fidelidad"],
+            ] : [
+              ["ID_CLIENTE", "ID Cliente"], ["NOMBRE", "Nombre"], ["APELLIDO", "Apellido"], ["EDAD", "Edad"], ["LUGAR ORIGEN", "Lugar de origen"], ["PREFERENCIA COLOR", "Color preferido"], ["TIPO DE COMIDA", "Tipo de comida"], ["ESTADO CIVIL", "Estado civil"], ["CANTIDAD DE HIJOS", "Cantidad de hijos"], ["FIDELIDAD", "Fidelidad"], ["COMPRABUEY", "Compra Buey"],
             ];
-  const save = (v: any) => {
+  const [message, setMessage] = useState("");
+  const save = async (v: any) => {
     const normalized = { ...v };
     for (const key of [
       "EDAD",
@@ -139,19 +135,15 @@ function CrudPage({
       "HORAS_CAPACITACION",
       "SUCURSAL_ID",
       "COMUNA_ID",
+      "NRO_CLIENTE",
+      "CANTIDAD DE HIJOS",
     ])
       if (normalized[key] !== "") normalized[key] = Number(normalized[key]);
-    const list = [...(store[kind] as any[])];
-    const idx = editing
-      ? list.findIndex(
-          (x) => String(x[fields[0][0]]) === String(editing[fields[0][0]]),
-        )
-      : -1;
-    if (idx >= 0) list[idx] = normalized;
-    else list.push(normalized);
-    setStore({ ...store, [kind]: list });
-    setModal(false);
-    setEditing(null);
+    setMessage("");
+    const response = await fetch('/api/data', { method: editing ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ table: kind, row: normalized, id: editing?.[fields[0][0]] }) });
+    const result = await response.json();
+    if (!response.ok || !result.ok) { setMessage(result.error || 'No se pudo guardar'); return; }
+    await state.reload(); setModal(false); setEditing(null); setMessage('Registro guardado en PostgreSQL');
   };
   return (
     <>
@@ -168,6 +160,7 @@ function CrudPage({
       <div className="mb-4 max-w-md">
         <SearchInput value={q} onChange={setQ} />
       </div>
+      {message && <p className={`mb-4 rounded-lg p-3 text-sm ${message.includes('guardado') ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>{message}</p>}
       <DataTable
         headers={fields.map((f) => f[1]).concat(["Acciones"])}
         rows={data.map((x: any) =>
@@ -184,17 +177,6 @@ function CrudPage({
                 >
                   <Edit3 size={16} />
                 </button>
-                <button
-                  onClick={() =>
-                    setStore({
-                      ...store,
-                      [kind]: (store[kind] as any[]).filter((y) => y !== x),
-                    })
-                  }
-                  className="text-red-500"
-                >
-                  <Trash2 size={16} />
-                </button>
               </span>,
             ),
         )}
@@ -208,10 +190,11 @@ function CrudPage({
           }}
         >
           <Form
-            fields={fields.map((f) => ({
+            fields={fields.slice(1).map((f) => ({
               name: f[0],
               label: f[1],
               value: editing?.[f[0]],
+              options: kind === 'sucursales' && f[0] === 'COMUNA_ID' ? store.comunas.map((c) => ({ value: c.COMUNA_ID, label: c.COMUNA_NOMBRE || String(c.COMUNA_ID) })) : undefined,
               type: [
                 "EDAD",
                 "PRECIO_UNITARIO",
@@ -220,6 +203,8 @@ function CrudPage({
                 "HORAS_CAPACITACION",
                 "SUCURSAL_ID",
                 "COMUNA_ID",
+                "NRO_CLIENTE",
+                "CANTIDAD DE HIJOS",
               ].includes(f[0])
                 ? "number"
                 : undefined,
@@ -233,30 +218,10 @@ function CrudPage({
   );
 }
 
-function Dashboard({ store, setStore }: { store: any; setStore: any }) {
-  const total = store.ventas.reduce(
-    (s: any, v: any) => s + (v.TOTAL_DOCUMENTO || 0),
-    0,
-  );
-  const monthly = Array.from({ length: 12 }, (_, i) => ({
-    name: [
-      "Ene",
-      "Feb",
-      "Mar",
-      "Abr",
-      "May",
-      "Jun",
-      "Jul",
-      "Ago",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dic",
-    ][i],
-    total: store.ventas
-      .filter((v: any) => new Date(v.FECHA).getMonth() === i)
-      .reduce((s: any, v: any) => s + (v.TOTAL_DOCUMENTO || 0), 0),
-  }));
+function Dashboard({ store }: { store: any }) {
+  const [metrics, setMetrics] = useState<any>({ summary: { ventas: 0, total: 0, clientes: 0, articulos: 0 }, monthly: [] });
+  useEffect(() => { fetch('/api/dashboard').then((r) => r.json()).then((result) => { if (result.ok) setMetrics(result.data); }); }, []);
+  const monthly = metrics.monthly.map((row: any) => ({ name: row.periodo, total: Number(row.total) }));
   return (
     <>
       <PageHeader
@@ -272,22 +237,22 @@ function Dashboard({ store, setStore }: { store: any; setStore: any }) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total de ventas"
-          value={store.ventas.length}
+          value={metrics.summary.ventas}
           icon={<Receipt size={18} />}
         />
         <StatCard
           label="Importe vendido"
-          value={money(total)}
+          value={money(Number(metrics.summary.total))}
           icon={<TrendingUp size={18} />}
         />
         <StatCard
           label="Clientes"
-          value={store.clientes.length}
+          value={metrics.summary.clientes}
           icon={<Users size={18} />}
         />
         <StatCard
           label="Artículos"
-          value={store.articulos.length}
+          value={metrics.summary.articulos}
           icon={<Package size={18} />}
         />
       </div>
@@ -332,7 +297,7 @@ function Dashboard({ store, setStore }: { store: any; setStore: any }) {
   );
 }
 
-function Sales({ store, setStore }: { store: any; setStore: any }) {
+function Sales({ store }: { store: any }) {
   const [q, setQ] = useState("");
   const [detail, setDetail] = useState<any>(null);
   const rows = store.ventas.filter((v: any) =>
@@ -409,11 +374,13 @@ function Sales({ store, setStore }: { store: any; setStore: any }) {
   );
 }
 
-function NewSale({ store, setStore }: { store: any; setStore: any }) {
-  const [doc, setDoc] = useState(
-    `VTA-${String(store.ventas.length + 1).padStart(4, "0")}`,
-  );
+function NewSale({ store }: { store: any }) {
   const [client, setClient] = useState(store.clientes[0]?.ID_CLIENTE || "");
+  const [seller, setSeller] = useState(store.vendedores[0]?.ID_VENDEDOR || "");
+  const [branch, setBranch] = useState(store.sucursales[0]?.SUCURSAL_ID || "");
+  const [documentType, setDocumentType] = useState("Factura");
+  const [message, setMessage] = useState("");
+  useEffect(() => { if (!client && store.clientes[0]) setClient(store.clientes[0].ID_CLIENTE); if (!seller && store.vendedores[0]) setSeller(store.vendedores[0].ID_VENDEDOR); if (!branch && store.sucursales[0]) setBranch(store.sucursales[0].SUCURSAL_ID); }, [store, client, seller, branch]);
   const [lines, setLines] = useState<any[]>([
     {
       CODIGO_PRODUCTO: store.articulos[0]?.CODIGO_PRODUCTO,
@@ -431,35 +398,18 @@ function NewSale({ store, setStore }: { store: any; setStore: any }) {
         PRECIO_UNITARIO: store.articulos[0]?.PRECIO_UNITARIO || 0,
       },
     ]);
-  const save = () => {
+  const save = async () => {
     if (
-      !doc ||
       !client ||
+      !seller ||
+      !branch ||
       !lines.length ||
       lines.some((l) => l.CANTIDAD <= 0 || l.PRECIO_UNITARIO < 0)
-    )
-      return;
-    const v: Venta = {
-      DOCUMENTO: doc,
-      FECHA: new Date().toISOString(),
-      ID_CLIENTE: client,
-      TIPO_DOCUMENTO: "Factura",
-      ID_VENDEDOR: 1,
-      TOTAL_NETO: totals.TOTAL_NETO,
-      IMPUESTO: totals.IMPUESTO,
-      TOTAL_DOCUMENTO: totals.TOTAL_DOCUMENTO,
-      SUCURSAL_ID: 1,
-    };
-    const ds: DetalleVenta[] = lines.map((l) => ({
-      ...l,
-      DOCUMENTO: doc,
-      TOTAL: lineTotal(l.PRECIO_UNITARIO, l.CANTIDAD),
-    }));
-    setStore({
-      ...store,
-      ventas: [...store.ventas, v],
-      detalleVentas: [...store.detalleVentas, ...ds],
-    });
+    ) { setMessage('Complete cliente, vendedor, sucursal y detalle válido'); return; }
+    setMessage('');
+    const response = await fetch('/api/ventas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ID_CLIENTE: client, ID_VENDEDOR: seller, SUCURSAL_ID: branch, TIPO_DOCUMENTO: documentType, lines: lines.map(({ CODIGO_PRODUCTO, CANTIDAD }) => ({ CODIGO_PRODUCTO, CANTIDAD })) }) });
+    const result = await response.json();
+    if (!response.ok || !result.ok) { setMessage(result.error || 'No se pudo guardar la venta'); return; }
     location.href = "/ventas";
   };
   return (
@@ -469,17 +419,10 @@ function NewSale({ store, setStore }: { store: any; setStore: any }) {
         description="El impuesto es un supuesto configurable de demostración (18%)"
       />
       <Card>
-        <div className="grid gap-4 sm:grid-cols-3">
+        {message && <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{message}</p>}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="text-sm font-medium text-slate-600">
-            DOCUMENTO
-            <input
-              value={doc}
-              onChange={(e) => setDoc(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-200 p-2.5"
-            />
-          </label>
-          <label className="text-sm font-medium text-slate-600">
-            ID_CLIENTE
+            Cliente
             <select
               value={client}
               onChange={(e) => setClient(e.target.value)}
@@ -493,8 +436,20 @@ function NewSale({ store, setStore }: { store: any; setStore: any }) {
             </select>
           </label>
           <label className="text-sm font-medium text-slate-600">
-            TIPO_DOCUMENTO
-            <select className="mt-1 w-full rounded-lg border border-slate-200 p-2.5">
+            Vendedor
+            <select value={seller} onChange={(e) => setSeller(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2.5">
+              {store.vendedores.map((v: any) => <option key={v.ID_VENDEDOR} value={v.ID_VENDEDOR}>{v.Nombre} {v.Apellido}</option>)}
+            </select>
+          </label>
+          <label className="text-sm font-medium text-slate-600">
+            Sucursal
+            <select value={branch} onChange={(e) => setBranch(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2.5">
+              {store.sucursales.map((s: any) => <option key={s.SUCURSAL_ID} value={s.SUCURSAL_ID}>{s.NOMBRE_SUCURSAL}</option>)}
+            </select>
+          </label>
+          <label className="text-sm font-medium text-slate-600">
+            Tipo de documento
+            <select value={documentType} onChange={(e) => setDocumentType(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-200 p-2.5">
               <option>Factura</option>
               <option>Boleta</option>
             </select>
@@ -623,14 +578,9 @@ function ReadOnly({
   );
 }
 function Reports({ store }: { store: any }) {
-  const chart = store.ventas.reduce((a: any, v: any) => {
-    const k = v.ID_VENDEDOR;
-    a[k] = (a[k] || 0) + (v.TOTAL_DOCUMENTO || 0);
-    return a;
-  }, {});
-  const data = Object.entries(chart)
-    .slice(0, 10)
-    .map(([name, total]) => ({ name: `Vendedor ${name}`, total }));
+  const [metrics, setMetrics] = useState<any>({ summary: { ventas: 0, total: 0 }, sellers: [] });
+  useEffect(() => { fetch('/api/dashboard').then((r) => r.json()).then((result) => { if (result.ok) setMetrics(result.data); }); }, []);
+  const data = metrics.sellers.map((row: any) => ({ name: row.nombre || `Vendedor ${row.ID_VENDEDOR}`, total: Number(row.total) }));
   return (
     <>
       <PageHeader
@@ -654,16 +604,13 @@ function Reports({ store }: { store: any }) {
           <h2 className="mb-4 font-semibold">Resumen</h2>
           <div className="space-y-4 text-sm">
             <p>
-              Documentos: <b>{store.ventas.length}</b>
+              Documentos: <b>{metrics.summary.ventas}</b>
             </p>
             <p>
               Ingresos:{" "}
               <b>
                 {money(
-                  store.ventas.reduce(
-                    (s: any, v: any) => s + v.TOTAL_DOCUMENTO,
-                    0,
-                  ),
+                  Number(metrics.summary.total),
                 )}
               </b>
             </p>
@@ -685,7 +632,7 @@ function Reports({ store }: { store: any }) {
 }
 
 export default function App() {
-  const [store, setStore] = useStore();
+  const [store, , state] = useStore();
   const path = typeof window === "undefined" ? "/" : location.pathname;
   const view =
     path === "/clientes" ? (
@@ -713,30 +660,30 @@ export default function App() {
         description="Puntos de atención relacionados a geografía"
       />
     ) : path === "/prospectos" ? (
-      <ReadOnly
+      <CrudPage
         kind="prospectos"
         title="Prospectos"
-        description="Datos ficticios de contacto y preferencias"
-        headers={["ID", "Nombre", "EMAIL", "ORIGEN"]}
+        description="Registro y edición de prospectos"
       />
     ) : path === "/clientes-buey" ? (
-      <ReadOnly
+      <CrudPage
         kind="clientesBuey"
         title="ClientesBuey"
-        description="Segmento de consulta con datos personales y preferencias ficticios"
-        headers={["ID", "Nombre", "FIDELIDAD", "PREFERENCIA COLOR"]}
+        description="Registro y edición del segmento ClientesBuey"
       />
     ) : path === "/ventas" ? (
-      <Sales store={store} setStore={setStore} />
+      <Sales store={store} />
     ) : path === "/ventas/nueva" ? (
-      <NewSale store={store} setStore={setStore} />
+      <NewSale store={store} />
     ) : path === "/reportes" ? (
       <Reports store={store} />
     ) : path === "/geografia" ? (
       <Geo store={store} />
     ) : (
-      <Dashboard store={store} setStore={setStore} />
+      <Dashboard store={store} />
     );
+  if (state.loading) return <Card><p className="text-slate-600">Cargando datos desde PostgreSQL…</p></Card>;
+  if (state.error) return <Card><h2 className="font-semibold text-red-700">No se pudo conectar con PostgreSQL</h2><p className="mt-2 text-sm text-slate-600">{state.error}</p><Button className="mt-4" onClick={() => state.reload()}>Reintentar</Button></Card>;
   return view;
 }
 function Geo({ store }: { store: any }) {
