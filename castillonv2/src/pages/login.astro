@@ -1,0 +1,661 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Iniciar Sesión · CastillónV2 Gestión de Restaurante">
+  <div class="login-wrapper">
+    <!-- Ambient background lights -->
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <div class="login-container">
+      <!-- Main login card -->
+      <div class="login-card">
+        <!-- Brand Header -->
+        <div class="brand-header">
+          <div class="brand-badge">
+            <span class="brand-icon">🍽️</span>
+            <span class="brand-text">Castillón<span>V2</span></span>
+          </div>
+          <h1>Control de Acceso Gastronómico</h1>
+          <p>Autenticación vinculada a roles y funciones operativas del restaurante</p>
+        </div>
+
+        <!-- Alert messages -->
+        <div id="loginAlert" class="login-alert hidden" role="alert">
+          <span id="alertIcon" class="alert-icon">⚠️</span>
+          <div id="alertMessage" class="alert-message">Credenciales incorrectas</div>
+        </div>
+
+        <!-- Form -->
+        <form id="loginForm" class="login-form">
+          <div class="form-group">
+            <label for="login">Usuario o Correo Institucional</label>
+            <div class="input-container">
+              <span class="input-icon">👤</span>
+              <input
+                type="text"
+                id="login"
+                name="login"
+                required
+                autocomplete="username"
+                placeholder="ej. Ramírez_Paredes@gmail.com"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Contraseña / PIN de Acceso</label>
+            <div class="input-container">
+              <span class="input-icon">🔒</span>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                autocomplete="current-password"
+                placeholder="PIN o contraseña de 5 dígitos"
+              />
+              <button type="button" id="togglePassword" class="btn-toggle-pass" title="Mostrar/ocultar contraseña">
+                👁️
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" id="submitBtn" class="btn-submit">
+            <span id="btnText">Ingresar al Sistema</span>
+            <span id="btnSpinner" class="spinner hidden">⏳</span>
+          </button>
+        </form>
+
+        <!-- Role Permissions & Demo Selector -->
+        <div class="demo-section">
+          <div class="demo-header">
+            <span class="demo-title">Cuentas Registradas en Base de Datos (Por Roles)</span>
+            <span class="demo-subtitle">Selecciona un rol para probar su vista o verificar restricciones:</span>
+          </div>
+
+          <div class="demo-grid">
+            <!-- 1. Administrador -->
+            <button
+              type="button"
+              class="demo-card demo-admin"
+              data-login="Ramírez_Paredes@gmail,com"
+              data-pass="52142"
+              data-role="ADMINISTRADOR"
+            >
+              <div class="demo-card-head">
+                <span class="demo-avatar">👑</span>
+                <div>
+                  <strong>Thiago Ramírez</strong>
+                  <small>Administrador</small>
+                </div>
+              </div>
+              <span class="demo-badge good">Acceso Total (11 módulos)</span>
+            </button>
+
+            <!-- 2. Gerente -->
+            <button
+              type="button"
+              class="demo-card demo-gerente"
+              data-login="Torres_Carrasco@gmail,com"
+              data-pass="14634"
+              data-role="GERENTE"
+            >
+              <div class="demo-card-head">
+                <span class="demo-avatar">👔</span>
+                <div>
+                  <strong>Mateo Torres</strong>
+                  <small>Gerente General</small>
+                </div>
+              </div>
+              <span class="demo-badge info">Ventas, Finanzas, Reportes</span>
+            </button>
+
+            <!-- 3. Chef -->
+            <button
+              type="button"
+              class="demo-card demo-chef"
+              data-login="Montes_Araya@gmail,com"
+              data-pass="57893"
+              data-role="CHEF"
+            >
+              <div class="demo-card-head">
+                <span class="demo-avatar">👨‍🍳</span>
+                <div>
+                  <strong>Julián Montes</strong>
+                  <small>Chef Ejecutivo</small>
+                </div>
+              </div>
+              <span class="demo-badge chef">Recetas, Menú y Comandas</span>
+            </button>
+
+            <!-- 4. Cocinero -->
+            <button
+              type="button"
+              class="demo-card demo-cocina"
+              data-login="Godínez_Sandoval@gmail,com"
+              data-pass="56751"
+              data-role="COCINERO"
+            >
+              <div class="demo-card-head">
+                <span class="demo-avatar">🍳</span>
+                <div>
+                  <strong>Antonella Godínez</strong>
+                  <small>Cocineros</small>
+                </div>
+              </div>
+              <span class="demo-badge cocina">Cocina y Comandas</span>
+            </button>
+
+            <!-- 5. Cajero / Recepción -->
+            <button
+              type="button"
+              class="demo-card demo-caja"
+              data-login="Jiménez_Zambrano@gmail,com"
+              data-pass="86651"
+              data-role="CAJERO"
+            >
+              <div class="demo-card-head">
+                <span class="demo-avatar">💵</span>
+                <div>
+                  <strong>Luciana Jiménez</strong>
+                  <small>Cajero / Recepción</small>
+                </div>
+              </div>
+              <span class="demo-badge warn">Caja, Clientes, Boletas</span>
+            </button>
+
+            <!-- 6. Mozo -->
+            <button
+              type="button"
+              class="demo-card demo-mozo"
+              data-login="Quiroz_Cifuentes@gmail,com"
+              data-pass="84547"
+              data-role="MOZO"
+            >
+              <div class="demo-card-head">
+                <span class="demo-avatar">🍽️</span>
+                <div>
+                  <strong>Gabriel Quiroz</strong>
+                  <small>Mozo de Salón</small>
+                </div>
+              </div>
+              <span class="demo-badge mozo">Mesas, Pedidos y Menú</span>
+            </button>
+
+            <!-- 7. Personal de limpieza (TEST DE RESTRICCIÓN) -->
+            <button
+              type="button"
+              class="demo-card demo-blocked"
+              data-login="Yáñez_Aguirre@gmail,com"
+              data-pass="58467"
+              data-role="BLOQUEADO"
+            >
+              <div class="demo-card-head">
+                <span class="demo-avatar">🚫</span>
+                <div>
+                  <strong>Camila Yáñez</strong>
+                  <small>Personal de Limpieza</small>
+                </div>
+              </div>
+              <span class="demo-badge danger">Prueba de Bloqueo (Sin acceso)</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="footer-note">
+          <small>Sistema Castillón Restaurante V2 · Control de Acceso por Roles (RBAC) conectado a PostgreSQL</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .login-wrapper {
+      min-height: 100vh;
+      background: radial-gradient(circle at top right, #1f1b2e 0%, #110f1c 50%, #0a0912 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      position: relative;
+      overflow: hidden;
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      color: #e2e1ec;
+    }
+
+    .ambient-glow {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      opacity: 0.25;
+    }
+    .glow-1 {
+      width: 400px;
+      height: 400px;
+      background: #7c3aed;
+      top: -100px;
+      left: -100px;
+    }
+    .glow-2 {
+      width: 450px;
+      height: 450px;
+      background: #f97316;
+      bottom: -150px;
+      right: -100px;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 580px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .login-card {
+      background: rgba(26, 24, 40, 0.92);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: 24px;
+      padding: 32px 28px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+
+    .brand-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(124, 58, 237, 0.15);
+      border: 1px solid rgba(124, 58, 237, 0.4);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      margin-bottom: 12px;
+    }
+    .brand-icon {
+      font-size: 16px;
+    }
+    .brand-text {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+    .brand-text span {
+      color: #f97316;
+      margin-left: 2px;
+    }
+    .brand-header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+    .brand-header p {
+      margin: 6px 0 0;
+      font-size: 13px;
+      color: #9d9bb3;
+    }
+
+    .login-alert {
+      padding: 12px 16px;
+      border-radius: 14px;
+      margin-bottom: 18px;
+      font-size: 13px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.45;
+    }
+    .login-alert.hidden {
+      display: none;
+    }
+    .login-alert.error {
+      background: rgba(225, 29, 72, 0.15);
+      border: 1px solid rgba(225, 29, 72, 0.4);
+      color: #fecdd3;
+    }
+    .login-alert.blocked {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fef3c7;
+    }
+    .login-alert.success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #a7f3d0;
+    }
+    .alert-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #cfcee0;
+      letter-spacing: 0.01em;
+    }
+    .input-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      font-size: 14px;
+      pointer-events: none;
+      opacity: 0.7;
+    }
+    .input-container input {
+      width: 100%;
+      background: #141221;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 12px 14px 12px 42px;
+      color: #ffffff;
+      font-size: 13.5px;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    .input-container input:focus {
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+      background: #171526;
+    }
+    .input-container input::placeholder {
+      color: #636179;
+    }
+    .btn-toggle-pass {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+      padding: 4px;
+    }
+    .btn-toggle-pass:hover {
+      opacity: 1;
+    }
+
+    .btn-submit {
+      margin-top: 6px;
+      background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 13px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 10px 20px -5px rgba(124, 58, 237, 0.4);
+      transition: all 0.2s ease;
+    }
+    .btn-submit:hover {
+      background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 14px 24px -5px rgba(124, 58, 237, 0.5);
+    }
+    .btn-submit:active {
+      transform: translateY(0);
+    }
+    .spinner.hidden {
+      display: none;
+    }
+
+    /* Demo Section */
+    .demo-section {
+      margin-top: 26px;
+      padding-top: 22px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+    .demo-header {
+      margin-bottom: 12px;
+    }
+    .demo-title {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #f1f0f7;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .demo-subtitle {
+      display: block;
+      font-size: 11.5px;
+      color: #9290a6;
+      margin-top: 2px;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .demo-card {
+      background: rgba(20, 18, 33, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 10px 10px;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      transition: all 0.18s ease;
+    }
+    .demo-card:hover {
+      background: rgba(35, 31, 56, 0.95);
+      border-color: rgba(139, 92, 246, 0.4);
+      transform: translateY(-2px);
+    }
+    .demo-card-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .demo-avatar {
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+    .demo-card-head strong {
+      display: block;
+      font-size: 11.5px;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 105px;
+    }
+    .demo-card-head small {
+      display: block;
+      font-size: 10px;
+      color: #9d9bb3;
+    }
+    .demo-badge {
+      display: inline-block;
+      font-size: 9.5px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 6px;
+      text-align: center;
+      width: fit-content;
+    }
+    .demo-badge.good {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .demo-badge.info {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+    .demo-badge.chef {
+      background: rgba(249, 115, 22, 0.15);
+      color: #fb923c;
+      border: 1px solid rgba(249, 115, 22, 0.3);
+    }
+    .demo-badge.cocina {
+      background: rgba(234, 179, 8, 0.15);
+      color: #fde047;
+      border: 1px solid rgba(234, 179, 8, 0.3);
+    }
+    .demo-badge.warn {
+      background: rgba(168, 85, 247, 0.15);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+    .demo-badge.mozo {
+      background: rgba(14, 165, 233, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(14, 165, 233, 0.3);
+    }
+    .demo-badge.danger {
+      background: rgba(239, 68, 68, 0.18);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .demo-card.demo-blocked {
+      border-color: rgba(239, 68, 68, 0.25);
+    }
+    .demo-card.demo-blocked:hover {
+      border-color: rgba(239, 68, 68, 0.6);
+      background: rgba(45, 18, 25, 0.85);
+    }
+
+    .footer-note {
+      text-align: center;
+      margin-top: 22px;
+      color: #6c6984;
+    }
+  </style>
+
+  <script>
+    const form = document.getElementById('loginForm') as HTMLFormElement;
+    const loginInput = document.getElementById('login') as HTMLInputElement;
+    const passInput = document.getElementById('password') as HTMLInputElement;
+    const alertBox = document.getElementById('loginAlert') as HTMLDivElement;
+    const alertMessage = document.getElementById('alertMessage') as HTMLDivElement;
+    const alertIcon = document.getElementById('alertIcon') as HTMLSpanElement;
+    const togglePassBtn = document.getElementById('togglePassword') as HTMLButtonElement;
+    const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
+    const btnText = document.getElementById('btnText') as HTMLSpanElement;
+    const btnSpinner = document.getElementById('btnSpinner') as HTMLSpanElement;
+
+    // Toggle password visibility
+    togglePassBtn?.addEventListener('click', () => {
+      const type = passInput.type === 'password' ? 'text' : 'password';
+      passInput.type = type;
+      togglePassBtn.textContent = type === 'password' ? '👁️' : '🙈';
+    });
+
+    function showAlert(msg: string, type: 'error' | 'blocked' | 'success') {
+      alertBox.className = `login-alert ${type}`;
+      alertMessage.textContent = msg;
+      alertIcon.textContent = type === 'blocked' ? '🚫' : type === 'error' ? '❌' : '✅';
+      alertBox.classList.remove('hidden');
+    }
+
+    function hideAlert() {
+      alertBox.classList.add('hidden');
+    }
+
+    // Role Demo Chips Click Handler
+    document.querySelectorAll('.demo-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        const login = card.getAttribute('data-login') || '';
+        const pass = card.getAttribute('data-pass') || '';
+        const role = card.getAttribute('data-role') || '';
+
+        loginInput.value = login;
+        passInput.value = pass;
+
+        if (role === 'BLOQUEADO') {
+          showAlert('Seleccionaste un empleado con cargo restringido (Personal de limpieza). Presiona "Ingresar al Sistema" para verificar la regla de negocio de rechazo de acceso.', 'blocked');
+        } else {
+          hideAlert();
+        }
+      });
+    });
+
+    // Submit handler
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAlert();
+
+      const login = loginInput.value.trim();
+      const password = passInput.value.trim();
+
+      if (!login || !password) {
+        showAlert('Por favor complete todos los campos.', 'error');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      btnText.textContent = 'Verificando credenciales...';
+      btnSpinner.classList.remove('hidden');
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ login, password }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.ok) {
+          showAlert(`¡Bienvenido/a ${data.user.nombre}! Acceso autorizado como [${data.user.labelRol}]. Redirigiendo...`, 'success');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 600);
+        } else {
+          submitBtn.disabled = false;
+          btnText.textContent = 'Ingresar al Sistema';
+          btnSpinner.classList.add('hidden');
+
+          if (data.blocked) {
+            showAlert(data.error || 'Acceso restringido: Este rol no tiene autorización para interactuar con el sistema.', 'blocked');
+          } else {
+            showAlert(data.error || 'Credenciales inválidas. Por favor verifique su usuario y contraseña.', 'error');
+          }
+        }
+      } catch (err: any) {
+        submitBtn.disabled = false;
+        btnText.textContent = 'Ingresar al Sistema';
+        btnSpinner.classList.add('hidden');
+        showAlert('Error de red al intentar conectar con el servidor.', 'error');
+      }
+    });
+  </script>
+</Layout>
