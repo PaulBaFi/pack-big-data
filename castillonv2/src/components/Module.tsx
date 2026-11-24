@@ -367,7 +367,7 @@ function Module({
           <Stat
             icon={CircleDollarSign}
             label="Total vendido"
-            value={money(db.VENTAS.reduce((a, v) => a + v.TOTALPAGAR, 0))}
+            value={money((db.VENTAS || []).reduce((a, v) => a + (Number(v.TOTALPAGAR) || 0), 0))}
             note="IGV configurable: 18%"
             color="purple"
           />
@@ -517,7 +517,7 @@ function Module({
           <Stat
             icon={Wallet}
             label="Egresos registrados"
-            value={money(db.EGRESO.reduce((a, e) => a + e.TOTAL, 0))}
+            value={money((db.EGRESO || []).reduce((a, e) => a + (Number(e.TOTAL) || 0), 0))}
             note="Según EGRESO.TOTAL"
             color="orange"
           />
@@ -629,7 +629,7 @@ function Module({
           <Stat
             icon={CircleDollarSign}
             label="Ventas acumuladas"
-            value={money(db.VENTAS.reduce((a, v) => a + v.TOTALPAGAR, 0))}
+            value={money((db.VENTAS || []).reduce((a, v) => a + (Number(v.TOTALPAGAR) || 0), 0))}
             note="Total a pagar"
             color="purple"
           />

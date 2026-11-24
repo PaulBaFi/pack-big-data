@@ -96,17 +96,17 @@ export default function App() {
       window.history.replaceState({}, "", v === "dashboard" ? "/" : `/${v}`);
   };
   const personName = (id: number) => {
-    const p = db.PERSONA.find((x) => x.IDPERSONA === id);
-    return p ? `${p.NOMBRES} ${p.APEPATERNO}` : "";
+    const p = (db.PERSONA || []).find((x) => x.IDPERSONA === id);
+    return p ? `${p.NOMBRES || ""} ${p.APEPATERNO || ""}`.trim() : "";
   };
   const clientName = (id: number) => {
-    const c = db.CLIENTE.find((x) => x.IDCLIENTE === id);
+    const c = (db.CLIENTE || []).find((x) => x.IDCLIENTE === id);
     return c?.IDPERSONA
       ? personName(c.IDPERSONA)
-      : db.EMPRESA.find((e) => e.IDEMPRESA === c?.IDEMPRESA)?.RAZON_SOCIAL ||
+      : (db.EMPRESA || []).find((e) => e.IDEMPRESA === c?.IDEMPRESA)?.RAZON_SOCIAL ||
           "—";
   };
-  const total = db.VENTAS.reduce((a, v) => a + v.TOTALPAGAR, 0);
+  const total = (db.VENTAS || []).reduce((a, v) => a + (Number(v.TOTALPAGAR) || 0), 0);
   const title = nav.find((n) => n[0] === view)?.[1] || "Resumen";
   return (
     <div className="shell">

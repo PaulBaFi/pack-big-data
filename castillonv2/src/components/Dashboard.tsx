@@ -27,7 +27,7 @@ function Dashboard({
   go: (v: View) => void;
   clientName: (id: number) => string;
 }) {
-  const recent = db.VENTAS.slice(-5).reverse();
+  const recent = (db.VENTAS || []).slice(-5).reverse();
   return (
     <>
       <div className="welcome">
@@ -52,21 +52,21 @@ function Dashboard({
         <Stat
           icon={ClipboardList}
           label="Pedidos registrados"
-          value={db.PEDIDOS.length}
+          value={(db.PEDIDOS || []).length}
           note="8 pendientes de atención"
           color="orange"
         />
         <Stat
           icon={Users}
           label="Clientes activos"
-          value={db.CLIENTE.length}
+          value={(db.CLIENTE || []).length}
           note="+4 nuevos este mes"
           color="blue"
         />
         <Stat
           icon={ChefHat}
           label="Productos activos"
-          value={db.PRODUCTO.length}
+          value={(db.PRODUCTO || []).length}
           note="En 5 categorías"
           color="green"
         />
@@ -112,7 +112,8 @@ function Dashboard({
             </button>
           </div>
           <div className="mini-list">
-            {db.PEDIDOS.slice(-4)
+            {(db.PEDIDOS || [])
+              .slice(-4)
               .reverse()
               .map((p) => (
                 <div className="mini-row" key={p.IDPEDIDO}>
@@ -123,7 +124,7 @@ function Dashboard({
                     <b>Pedido #{String(p.IDPEDIDO).padStart(4, "0")}</b>
                     <small>
                       Mesa{" "}
-                      {db.MESAS.find((m) => m.IDMESA === p.IDMESA)?.NUNMESA} ·{" "}
+                      {(db.MESAS || []).find((m) => m.IDMESA === p.IDMESA)?.NUNMESA || "—"} ·{" "}
                       {date(p.FECHA)}
                     </small>
                   </div>
@@ -156,8 +157,8 @@ function Dashboard({
             <b>#{String(v.IDVENTAS).padStart(5, "0")}</b>,
             clientName(v.IDCLIENTE),
             date(v.FECHAVENTA),
-            db.METODO_PAGO.find((m) => m.IDMETODO_PAGO === v.IDMETODO_PAGO)
-              ?.NOMMETODO,
+            (db.METODO_PAGO || []).find((m) => m.IDMETODO_PAGO === v.IDMETODO_PAGO)
+              ?.NOMMETODO || "—",
             money(v.TOTALPAGAR),
             badge(v.ESTADO),
           ])}

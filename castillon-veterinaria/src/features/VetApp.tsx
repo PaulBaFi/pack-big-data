@@ -27,11 +27,23 @@ import type {
 import { loadDB, nextId, saveDB } from "@/services/storage";
 import { seedDB } from "@/data/seed";
 
-const money = (n: number) =>
-  `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2 })}`;
+const money = (n: number | string | null | undefined) => {
+  const num = typeof n === "number" ? n : parseFloat(String(n ?? 0));
+  const val = isNaN(num) ? 0 : num;
+  return `S/ ${val.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
-const date = (s: string) =>
-  new Date(`${s}T00:00:00`).toLocaleDateString("es-PE");
+const date = (s: string | null | undefined) => {
+  if (!s) return "—";
+  try {
+    const str = String(s).trim();
+    const d = str.includes("T") || str.includes("Z") ? new Date(str) : new Date(`${str}T12:00:00`);
+    if (isNaN(d.getTime())) return str;
+    return d.toLocaleDateString("es-PE");
+  } catch {
+    return String(s);
+  }
+};
 
 const status: Record<string, string> = {
   P: "Programada",
@@ -136,8 +148,8 @@ function Dashboard({ db, go }: { db: DB; go: (p: string) => void }) {
     {
       label: "Ventas del periodo",
       value: money(
-        db.VENTA.filter((v) => v.FECHA === today).reduce(
-          (s, v) => s + v.TOTAL,
+        (db.VENTA || []).reduce(
+          (s, v) => s + (Number(v.TOTAL) || 0),
           0,
         ),
       ),
@@ -925,7 +937,7 @@ function Listing({
 
 function Reports({ db }: { db: DB }) {
   const confirmed = db.VENTA.filter((v) => v.ESTADO === "CONFIRMADA");
-  const total = confirmed.reduce((s, v) => s + v.TOTAL, 0);
+  const total = confirmed.reduce((s, v) => s + (Number(v.TOTAL) || 0), 0);
   return (
     <>
       <div className="page-head">

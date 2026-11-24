@@ -1,4 +1,4 @@
-import { query } from './db';
+import { query, closePool, closeAllPools } from './db';
 
 export interface SourceSystemInfo {
   id: string;
@@ -96,56 +96,62 @@ export async function getSourcesStatus(): Promise<{ sources: SourceSystemInfo[];
   let totalOltp = 0;
   let totalOlap = 0;
 
-  for (const s of sourcesDef) {
-    let oltpCount = 0;
-    let olapCount = 0;
-    let lastOltpDate: string | null = null;
-    let lastOlapDate: string | null = null;
-    let latencyMs = 0;
-    let status: 'ONLINE' | 'OFFLINE' | 'ERROR' = 'ONLINE';
+  try {
+    for (const s of sourcesDef) {
+      let oltpCount = 0;
+      let olapCount = 0;
+      let lastOltpDate: string | null = null;
+      let lastOlapDate: string | null = null;
+      let latencyMs = 0;
+      let status: 'ONLINE' | 'OFFLINE' | 'ERROR' = 'ONLINE';
 
-    // Consultar OLTP
-    try {
-      const t0 = Date.now();
-      const oltpRes = await query(s.countQueryOltp, [], s.dbKey);
-      latencyMs = Date.now() - t0;
-      oltpCount = parseInt(oltpRes.rows[0]?.cnt || '0', 10);
-      lastOltpDate = oltpRes.rows[0]?.max_date ? new Date(oltpRes.rows[0].max_date).toISOString().split('T')[0] : null;
-    } catch (e: any) {
-      status = 'ERROR';
-      console.error(`[Monitor Error] Error consultando OLTP ${s.id}:`, e.message);
+      // Consultar OLTP y liberar conexion
+      try {
+        const t0 = Date.now();
+        const oltpRes = await query(s.countQueryOltp, [], s.dbKey);
+        latencyMs = Date.now() - t0;
+        oltpCount = parseInt(oltpRes.rows[0]?.cnt || '0', 10);
+        lastOltpDate = oltpRes.rows[0]?.max_date ? new Date(oltpRes.rows[0].max_date).toISOString().split('T')[0] : null;
+      } catch (e: any) {
+        status = 'ERROR';
+        console.error(`[Monitor Error] Error consultando OLTP ${s.id}:`, e.message);
+      } finally {
+        await closePool(s.dbKey);
+      }
+
+      // Consultar OLAP
+      try {
+        const olapRes = await query(s.countQueryOlap, [], 'dw_olap');
+        olapCount = parseInt(olapRes.rows[0]?.cnt || '0', 10);
+        lastOlapDate = olapRes.rows[0]?.max_date ? new Date(olapRes.rows[0].max_date).toISOString().split('T')[0] : null;
+      } catch (e: any) {
+        console.error(`[Monitor Error] Error consultando OLAP para ${s.id}:`, e.message);
+      }
+
+      const pendingCount = Math.max(0, oltpCount - olapCount);
+      totalOltp += oltpCount;
+      totalOlap += olapCount;
+
+      sources.push({
+        id: s.id,
+        nombre: s.nombre,
+        estrato: s.estrato,
+        rubro: s.rubro,
+        tablaOrigen: s.tablaOrigen,
+        tablaDestino: s.tablaDestino,
+        oltpCount,
+        olapCount,
+        pendingCount,
+        isSynced: pendingCount === 0,
+        status,
+        latencyMs,
+        lastOltpDate,
+        lastOlapDate,
+        dbName: s.dbName,
+      });
     }
-
-    // Consultar OLAP
-    try {
-      const olapRes = await query(s.countQueryOlap, [], 'dw_olap');
-      olapCount = parseInt(olapRes.rows[0]?.cnt || '0', 10);
-      lastOlapDate = olapRes.rows[0]?.max_date ? new Date(olapRes.rows[0].max_date).toISOString().split('T')[0] : null;
-    } catch (e: any) {
-      console.error(`[Monitor Error] Error consultando OLAP para ${s.id}:`, e.message);
-    }
-
-    const pendingCount = Math.max(0, oltpCount - olapCount);
-    totalOltp += oltpCount;
-    totalOlap += olapCount;
-
-    sources.push({
-      id: s.id,
-      nombre: s.nombre,
-      estrato: s.estrato,
-      rubro: s.rubro,
-      tablaOrigen: s.tablaOrigen,
-      tablaDestino: s.tablaDestino,
-      oltpCount,
-      olapCount,
-      pendingCount,
-      isSynced: pendingCount === 0,
-      status,
-      latencyMs,
-      lastOltpDate,
-      lastOlapDate,
-      dbName: s.dbName,
-    });
+  } finally {
+    await closeAllPools();
   }
 
   const totalPending = Math.max(0, totalOltp - totalOlap);
@@ -171,7 +177,8 @@ export async function getSourcePreview(sourceId: string): Promise<any[]> {
         [],
         'castillonv2'
       );
-      // Validar si existe en OLAP
+      await closePool('castillonv2');
+
       const docs = res.rows.map((r) => r.DOCUMENTO);
       const olapRes = await query(
         `SELECT nro_comprobante FROM fact_ventas_privadas WHERE nro_comprobante = ANY($1);`,
@@ -198,13 +205,15 @@ export async function getSourcePreview(sourceId: string): Promise<any[]> {
         [],
         'veterinaria'
       );
+      await closePool('veterinaria');
+
       return res.rows.map((r) => ({
         id: r.IDVENTA,
         documento: `VET-${r.IDVENTA}`,
         fecha: r.fecha ? new Date(r.fecha).toISOString().split('T')[0] : 'N/A',
         total: parseFloat(r.MONTOTOTAL || 0).toFixed(2),
         referencia: r.TIPO_COMPROBANTE || 'BOLETA',
-        isSynced: true, // Tras la ETL completa
+        isSynced: true,
       }));
     }
 
@@ -217,6 +226,8 @@ export async function getSourcePreview(sourceId: string): Promise<any[]> {
         [],
         'samar'
       );
+      await closePool('samar');
+
       const docs = res.rows.map((r) => r.DOCUMENTO);
       const olapRes = await query(
         `SELECT nro_comprobante FROM fact_ventas_privadas WHERE nro_comprobante = ANY($1);`,
@@ -243,6 +254,8 @@ export async function getSourcePreview(sourceId: string): Promise<any[]> {
         [],
         'siga'
       );
+      await closePool('siga');
+
       return res.rows.map((r) => ({
         id: `${r.ANO_EJE}-${r.NRO_ORDEN}`,
         documento: `OC-${r.NRO_ORDEN}`,
@@ -257,5 +270,7 @@ export async function getSourcePreview(sourceId: string): Promise<any[]> {
   } catch (err: any) {
     console.error(`[Preview Error] Error en vista previa de ${sourceId}:`, err.message);
     return [];
+  } finally {
+    await closeAllPools();
   }
 }

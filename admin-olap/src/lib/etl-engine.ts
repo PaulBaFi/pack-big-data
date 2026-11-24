@@ -1,4 +1,4 @@
-import { query } from './db';
+import { query, closePool, closeAllPools } from './db';
 import { logAdminAction } from './auth';
 
 export interface EtlRunResult {
@@ -77,6 +77,8 @@ export async function runEtlPipeline(triggerBy: string = 'BOTON_MANUAL', userEma
       [],
       'castillonv2'
     );
+    await closePool('castillonv2'); // Liberar conexion inmediatamente
+
     if (c2Ventas.rows.length > 0) {
       const values: any[] = [];
       const placeholders: string[] = [];
@@ -122,6 +124,8 @@ export async function runEtlPipeline(triggerBy: string = 'BOTON_MANUAL', userEma
       [],
       'veterinaria'
     );
+    await closePool('veterinaria'); // Liberar conexion inmediatamente
+
     if (vetVentas.rows.length > 0) {
       const values: any[] = [];
       const placeholders: string[] = [];
@@ -167,8 +171,9 @@ export async function runEtlPipeline(triggerBy: string = 'BOTON_MANUAL', userEma
       [],
       'samar'
     );
+    await closePool('samar'); // Liberar conexion inmediatamente
+
     if (samarVentas.rows.length > 0) {
-      // Inserción en bloques de 1,000 para optimización
       const batchSize = 1000;
       for (let i = 0; i < samarVentas.rows.length; i += batchSize) {
         const chunk = samarVentas.rows.slice(i, i + batchSize);
@@ -218,6 +223,8 @@ export async function runEtlPipeline(triggerBy: string = 'BOTON_MANUAL', userEma
       [],
       'siga'
     );
+    await closePool('siga'); // Liberar conexion inmediatamente
+
     if (sigaCompras.rows.length > 0) {
       const batchSize = 1000;
       for (let i = 0; i < sigaCompras.rows.length; i += batchSize) {
@@ -309,18 +316,21 @@ export async function runEtlPipeline(triggerBy: string = 'BOTON_MANUAL', userEma
     };
   } catch (err: any) {
     const durationSeconds = Math.round(((Date.now() - startTime) / 1000) * 100) / 100;
-    await query(
-      `UPDATE etl_log_ejecucion
-       SET fecha_fin = NOW(),
-           duracion_segundos = $1,
-           estado = 'ERROR',
-           mensaje_error = $2
-       WHERE id_log = $3;`,
-      [durationSeconds, err.message, logId],
-      'dw_olap'
-    );
-
-    await logAdminAction(null, userEmail, 'ETL_EXECUTION_ERROR', { error: err.message, triggerBy });
+    try {
+      await query(
+        `UPDATE etl_log_ejecucion
+         SET fecha_fin = NOW(),
+             duracion_segundos = $1,
+             estado = 'ERROR',
+             mensaje_error = $2
+         WHERE id_log = $3;`,
+        [durationSeconds, err.message, logId],
+        'dw_olap'
+      );
+      await logAdminAction(null, userEmail, 'ETL_EXECUTION_ERROR', { error: err.message, triggerBy });
+    } catch (logErr) {
+      console.error('[ETL Logging Error]:', logErr);
+    }
 
     return {
       success: false,
@@ -334,6 +344,9 @@ export async function runEtlPipeline(triggerBy: string = 'BOTON_MANUAL', userEma
       errorMessage: err.message,
       detalles: {},
     };
+  } finally {
+    // Cerrar todas las conexiones activas al finalizar la ejecucion
+    await closeAllPools();
   }
 }
 
@@ -360,7 +373,6 @@ async function populateDimTiempo(): Promise<void> {
     curr.setDate(curr.getDate() + 1);
   }
 
-  // Insertar en bloques con ON CONFLICT DO NOTHING
   const batchSize = 1000;
   for (let i = 0; i < rows.length; i += batchSize) {
     const chunk = rows.slice(i, i + batchSize);
@@ -386,9 +398,9 @@ async function populateDimEmpresa(): Promise<void> {
     ['SAMAR_CORP', 'SAMAR IMPORTADORA S.A.', 'GRANDE', 'PRIVADO', 'NO_MYPE', 'SamarImportadora'],
   ];
 
-  // Agregar contratistas SIGA
   try {
     const sigaCont = await query('SELECT "PROVEEDOR", "NOMBRE_PROV", "FLAG_MYPE" FROM "SIG_CONTRATISTAS";', [], 'siga');
+    await closePool('siga');
     for (const r of sigaCont.rows) {
       const provId = String(r.PROVEEDOR || '');
       const nom = String(r.NOMBRE_PROV || `PROVEEDOR_${provId}`).trim();

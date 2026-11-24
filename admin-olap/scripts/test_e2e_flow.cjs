@@ -42,9 +42,6 @@ async function runE2ETests() {
   console.log(`  -> Status: ${sourcesRes.status} (Esperado: 200)`);
   console.log(`  -> Total OLTP: ${sourcesData.totalOltp}, Total OLAP: ${sourcesData.totalOlap}, Pendientes: ${sourcesData.totalPending}`);
   console.log(`  -> Tasa Global Sincronización: ${sourcesData.globalSyncPercentage}%`);
-  for (const s of sourcesData.sources) {
-    console.log(`     * [${s.nombre}] OLTP: ${s.oltpCount} | OLAP: ${s.olapCount} | Pendientes: ${s.pendingCount} | Latencia: ${s.latencyMs}ms`);
-  }
 
   // 5. Probar API de Auditoría y Calidad OLAP (Pilar 3)
   console.log('\n5. Probando Auditoría de Calidad OLAP (GET /api/olap/audit)...');
@@ -52,9 +49,6 @@ async function runE2ETests() {
   const auditData = await auditRes.json();
   console.log(`  -> Status: ${auditRes.status} (Esperado: 200)`);
   console.log(`  -> Score de Calidad: ${auditData.score}% (${auditData.overallStatus})`);
-  for (const c of auditData.checks) {
-    console.log(`     * [${c.codigo}] ${c.nombre}: ${c.estado} -> ${c.detalles}`);
-  }
 
   // 6. Probar Conciliación y Sincronización Post-ETL
   console.log('\n6. Probando Matriz de Conciliación 1:1 (GET /api/olap/reconcile)...');
@@ -62,13 +56,22 @@ async function runE2ETests() {
   const recData = await recRes.json();
   console.log(`  -> Status: ${recRes.status} (Esperado: 200)`);
   console.log(`  -> Sincronización Total Confirmada: ${recData.isFullySynced ? 'SÍ (100.00%)' : 'NO'}`);
-  console.log(`  -> Diferencial Total de Registros: ${recData.diferencialTotal}`);
 
-  // 7. Probar Configuración de Frecuencia ETL (Pilar 1)
-  console.log('\n7. Probando Configuración de Frecuencia ETL (GET /api/etl/config)...');
-  const cfgRes = await fetch('http://localhost:4329/api/etl/config', { headers: authHeaders });
-  const cfgData = await cfgRes.json();
-  console.log(`  -> Status: ${cfgRes.status} (Esperado: 200). Frecuencia:`, cfgData.frecuencia_sugerida);
+  // 7. Probar Ejecución Real del Pipeline ETL (POST /api/etl/run)
+  console.log('\n7. Probando Disparo Real de la ETL (POST /api/etl/run)...');
+  const t0 = Date.now();
+  const etlRes = await fetch('http://localhost:4329/api/etl/run', {
+    method: 'POST',
+    headers: authHeaders,
+  });
+  const etlData = await etlRes.json();
+  const elapsed = (Date.now() - t0) / 1000;
+  console.log(`  -> Status: ${etlRes.status} (Esperado: 200) en ${elapsed}s`);
+  console.log('  -> Resultado ETL:', etlData);
+
+  if (!etlData.success) {
+    throw new Error(`ETL fallo con mensaje: ${etlData.errorMessage || etlData.error}`);
+  }
 
   console.log('\n=== TODAS LAS PRUEBAS END-TO-END PASARON CON ÉXITO (100%) ===');
 }

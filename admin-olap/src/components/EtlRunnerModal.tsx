@@ -123,6 +123,10 @@ export const EtlRunnerModal: React.FC = () => {
       const res = await fetch('/api/etl/run', { method: 'POST' });
       const data = await res.json();
 
+      if (!res.ok || !data.success) {
+        throw new Error(data.errorMessage || data.error || 'Error en la ejecución del pipeline ETL');
+      }
+
       setProgress(85);
       setCurrentStep('Transformando ventas privadas y compras estatales en modelo Star Schema...');
       setLogs((prev) => [
