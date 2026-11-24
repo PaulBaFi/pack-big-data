@@ -158,19 +158,19 @@ function Dashboard({ db, go }: { db: DB; go: (p: string) => void }) {
     },
     {
       label: "Citas programadas",
-      value: db.CITA.filter((c) => c.ESTADO_CITA === "P").length,
+      value: (db.CITA || []).filter((c) => c.ESTADO_CITA === "P").length,
       icon: CalendarDays,
       tint: "violet",
     },
     {
       label: "Pacientes activos",
-      value: db.MASCOTA.length,
+      value: (db.MASCOTA || []).length,
       icon: PawPrint,
       tint: "green",
     },
     {
       label: "Alertas de stock",
-      value: db.PRODUCTO.filter((p) => p.STOCK <= p.STOCK_MINIMO).length,
+      value: (db.PRODUCTO || []).filter((p) => (Number(p.STOCK) || 0) <= (Number(p.STOCK_MINIMO) || 15)).length,
       icon: Package,
       tint: "orange",
     },
@@ -215,32 +215,25 @@ function Dashboard({ db, go }: { db: DB; go: (p: string) => void }) {
               Ver agenda <ChevronRight size={15} />
             </button>
           </div>
-          {db.CITA.slice(0, 5).map((c) => (
-            <div className="appointment" key={c.IDCITA}>
-              <div className="time">{c.HORA}</div>
-              <div className="avatar">
-                {db.MASCOTA[(c.IDMASCOTA % db.MASCOTA.length) - 1]
-                  ?.NOMBRE?.[0] ?? "M"}
+          {(db.CITA || []).slice(0, 5).map((c) => {
+            const pet = (db.MASCOTA || []).find((m) => m.IDMASCOTA === c.IDMASCOTA);
+            const owner = (db.PERSONA || []).find((p) => p.IDPERSONA === pet?.IDPERSONA);
+            const petName = pet?.NOMBRE || `Mascota #${c.IDMASCOTA}`;
+            const ownerName = owner ? `${owner.NOMBRES || ''} ${owner.APELLIDOS || ''}`.trim() : 'Cliente general';
+            return (
+              <div className="appointment" key={c.IDCITA}>
+                <div className="time">{c.HORA}</div>
+                <div className="avatar">
+                  {petName[0] ?? "M"}
+                </div>
+                <div className="grow">
+                  <strong>{petName}</strong>
+                  <span>{c.MOTIVO} · {ownerName}</span>
+                </div>
+                <Badge value={c.ESTADO_CITA} />
               </div>
-              <div className="grow">
-                <strong>
-                  {db.MASCOTA.find((m) => m.IDMASCOTA === c.IDMASCOTA)?.NOMBRE}
-                </strong>
-                <span>
-                  {c.MOTIVO} ·{" "}
-                  {
-                    db.PERSONA.find(
-                      (p) =>
-                        p.IDPERSONA ===
-                        db.MASCOTA.find((m) => m.IDMASCOTA === c.IDMASCOTA)
-                          ?.IDPERSONA,
-                    )?.NOMBRES
-                  }
-                </span>
-              </div>
-              <Badge value={c.ESTADO_CITA} />
-            </div>
-          ))}
+            );
+          })}
         </section>
         
         <section className="panel">
@@ -253,7 +246,8 @@ function Dashboard({ db, go }: { db: DB; go: (p: string) => void }) {
               Ver inventario <ChevronRight size={15} />
             </button>
           </div>
-          {db.PRODUCTO.filter((p) => p.STOCK <= p.STOCK_MINIMO)
+          {(db.PRODUCTO || [])
+            .filter((p) => (Number(p.STOCK) || 0) <= (Number(p.STOCK_MINIMO) || 15))
             .slice(0, 5)
             .map((p) => (
               <div className="stock-row" key={p.IDPRODUCTO}>
@@ -261,8 +255,8 @@ function Dashboard({ db, go }: { db: DB; go: (p: string) => void }) {
                   <Package size={16} />
                 </div>
                 <div className="grow">
-                  <strong>{p.NOMBRE}</strong>
-                  <span>SKU {p.CODIGO}</span>
+                  <strong>{p.NOMBRE || ('Producto #' + p.IDPRODUCTO)}</strong>
+                  <span>SKU {p.CODIGO} · Mínimo: {p.STOCK_MINIMO || 15}</span>
                 </div>
                 <span className="stock-low">{p.STOCK} und.</span>
               </div>
@@ -314,29 +308,29 @@ function Listing({
                       : "Personal y seguridad";
   const rows =
     section === "clientes"
-      ? db.CLIENTE
+      ? (db.CLIENTE || [])
       : section === "mascotas"
-        ? db.MASCOTA
+        ? (db.MASCOTA || [])
         : section === "citas"
-          ? db.CITA
+          ? (db.CITA || [])
           : section === "historia-clinica"
-            ? db.FICHA_CLINICA
+            ? (db.FICHA_CLINICA || [])
             : section === "inventario"
-              ? db.PRODUCTO
+              ? (db.PRODUCTO || [])
               : section === "ventas"
-                ? db.VENTA
+                ? (db.VENTA || [])
                 : section === "compras"
-                  ? db.COMPRA
+                  ? (db.COMPRA || [])
                   : section === "caja"
-                    ? db.APERTURA_CIERRE_CAJA
+                    ? (db.APERTURA_CIERRE_CAJA || [])
                     : section === "promociones"
-                      ? db.PROMOCION
-                      : db.EMPLEADO;
+                      ? (db.PROMOCION || [])
+                      : (db.EMPLEADO || []);
   const filtered = rows.filter((r) =>
     JSON.stringify(r).toLowerCase().includes(q.toLowerCase()),
   );
   const shown = filtered.slice((page - 1) * size, page * size);
-  const person = (id: number) => db.PERSONA.find((p) => p.IDPERSONA === id);
+  const person = (id: number) => (db.PERSONA || []).find((p) => p.IDPERSONA === id);
   const cols =
     section === "clientes"
       ? ["Cliente", "Tipo", "Contacto", "Estado"]
@@ -380,13 +374,18 @@ function Listing({
         PESO: Number(form.peso) || 1,
       };
       update({ MASCOTA: [...db.MASCOTA, item] });
+      fetch('/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: 'MASCOTA', row: item }),
+      }).catch(console.error);
     } else if (section === "citas") {
       if (!form.fecha || !form.mascota || !form.hora) {
         alert("Completa fecha, mascota y hora");
         return;
       }
       if (
-        db.CITA.some(
+        (db.CITA || []).some(
           (c) =>
             c.IDEMPLEADO === Number(form.empleado || 1) &&
             c.FECHA === form.fecha &&
@@ -407,6 +406,11 @@ function Listing({
         ESTADO_CITA: "P",
       };
       update({ CITA: [...db.CITA, item] });
+      fetch('/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: 'CITA', row: item }),
+      }).catch(console.error);
     } else if (section === "inventario") {
       if (!form.nombre) {
         alert("Completa el nombre");
@@ -425,6 +429,11 @@ function Listing({
         ACTIVO: true,
       };
       update({ PRODUCTO: [...db.PRODUCTO, item] });
+      fetch('/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: 'PRODUCTO', row: item }),
+      }).catch(console.error);
     } else if (section === "historia-clinica") {
       if (!form.mascota || !form.diagnostico) {
         alert("Completa mascota y diagnóstico");
@@ -442,6 +451,44 @@ function Listing({
         FECHA: new Date().toISOString().slice(0, 10),
       };
       update({ FICHA_CLINICA: [...db.FICHA_CLINICA, item] });
+      fetch('/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: 'FICHA_CLINICA', row: item }),
+      }).catch(console.error);
+    } else if (section === "ventas") {
+      const tot = Number(form.total) || 60;
+      const sub = Number((tot / 1.18).toFixed(2));
+      const igv = Number((tot - sub).toFixed(2));
+      const item: VENTA = {
+        IDVENTA: nextId(db.VENTA, "IDVENTA"),
+        IDCLIENTE: Number(form.cliente || 1),
+        FECHA: new Date().toISOString().slice(0, 10),
+        SUBTOTAL: sub,
+        DESCUENTO: 0,
+        IGV: igv,
+        TOTAL: tot,
+        ESTADO: "CONFIRMADA",
+      };
+      update({ VENTA: [...(db.VENTA || []), item] });
+      fetch('/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table: 'VENTA',
+          row: {
+            IDVENTA: item.IDVENTA,
+            IDCLIENTE: item.IDCLIENTE,
+            FECH_VENTA: new Date().toISOString(),
+            TOTAL: tot,
+            TOTALAAPAGAR: tot,
+            SUBTOTAL: sub,
+            IGV: igv,
+            TIPO_COMPROBANTE: form.tipo || 'B',
+            ESTADO: '1'
+          }
+        }),
+      }).catch(console.error);
     }
     setModal(false);
     setForm({});
@@ -458,7 +505,7 @@ function Listing({
             {filtered.length} registros relacionados en el sistema
           </p>
         </div>
-        {["mascotas", "citas", "historia-clinica", "inventario"].includes(
+        {["mascotas", "citas", "historia-clinica", "inventario", "ventas"].includes(
           section,
         ) && (
           <button className="btn btn-primary" onClick={() => setModal(true)}>
@@ -920,6 +967,39 @@ function Listing({
                 />
               </>
             )}
+            {section === "ventas" && (
+              <>
+                <Select
+                  label="Cliente *"
+                  value={form.cliente || "1"}
+                  onChange={(e) => setForm({ ...form, cliente: e.target.value })}
+                >
+                  {(db.CLIENTE || []).map((c) => {
+                    const p = (db.PERSONA || []).find((per) => per.IDPERSONA === c.IDPERSONA);
+                    return (
+                      <option key={c.IDCLIENTE} value={c.IDCLIENTE}>
+                        {p ? `${p.NOMBRES} ${p.APELLIDOS}` : `Cliente #${c.IDCLIENTE}`}
+                      </option>
+                    );
+                  })}
+                </Select>
+                <Input
+                  label="Total venta (S/) *"
+                  type="number"
+                  value={form.total || ""}
+                  onChange={(e) => setForm({ ...form, total: e.target.value })}
+                  placeholder="Ej: 120.00"
+                />
+                <Select
+                  label="Tipo Comprobante"
+                  value={form.tipo || "B"}
+                  onChange={(e) => setForm({ ...form, tipo: e.target.value })}
+                >
+                  <option value="B">Boleta</option>
+                  <option value="F">Factura</option>
+                </Select>
+              </>
+            )}
           </div>
           <div className="modal-actions">
             <button className="btn btn-ghost" onClick={() => setModal(false)}>
@@ -936,7 +1016,7 @@ function Listing({
 }
 
 function Reports({ db }: { db: DB }) {
-  const confirmed = db.VENTA.filter((v) => v.ESTADO === "CONFIRMADA");
+  const confirmed = (db.VENTA || []).filter((v) => v.ESTADO === "CONFIRMADA");
   const total = confirmed.reduce((s, v) => s + (Number(v.TOTAL) || 0), 0);
   return (
     <>
@@ -968,9 +1048,9 @@ function Reports({ db }: { db: DB }) {
           <div>
             <p>Citas atendidas</p>
             <strong>
-              {db.CITA.filter((c) => c.ESTADO_CITA === "A").length}
+              {(db.CITA || []).filter((c) => c.ESTADO_CITA === "A").length}
             </strong>
-            <small>de {db.CITA.length} registradas</small>
+            <small>de {(db.CITA || []).length} registradas</small>
           </div>
         </div>
         <div className="stat-card">
@@ -980,9 +1060,9 @@ function Reports({ db }: { db: DB }) {
           <div>
             <p>Valor inventario</p>
             <strong>
-              {money(db.PRODUCTO.reduce((s, p) => s + p.STOCK * p.COSTO, 0))}
+              {money((db.PRODUCTO || []).reduce((s, p) => s + (Number(p.STOCK) || 0) * (Number(p.COSTO) || 0), 0))}
             </strong>
-            <small>{db.PRODUCTO.length} productos</small>
+            <small>{(db.PRODUCTO || []).length} productos</small>
           </div>
         </div>
       </div>
@@ -996,11 +1076,11 @@ function Reports({ db }: { db: DB }) {
           </div>
         </div>
         <div className="bars">
-          {db.VENTA.slice(0, 12).map((v, i) => (
+          {(db.VENTA || []).slice(0, 12).map((v, i) => (
             <div className="bar-wrap" key={v.IDVENTA}>
               <div
                 className="bar"
-                style={{ height: `${Math.max(18, (v.TOTAL / 250) * 100)}px` }}
+                style={{ height: `${Math.max(18, ((Number(v.TOTAL) || 0) / 250) * 100)}px` }}
                 title={money(v.TOTAL)}
               ></div>
               <small>{i + 1}</small>
@@ -1024,7 +1104,16 @@ export default function VetApp() {
       .then((r) => r.json())
       .then((res) => {
         if (res && res.ok && res.data) {
-          setDb((prev) => ({ ...prev, ...res.data }));
+          setDb((prev) => {
+            const next = { ...prev };
+            for (const [k, v] of Object.entries(res.data)) {
+              if (Array.isArray(v) && v.length > 0) {
+                (next as any)[k] = v;
+              }
+            }
+            saveDB(next);
+            return next;
+          });
         }
       })
       .catch((err) => console.warn('Using local cache/seed:', err));
@@ -1078,8 +1167,8 @@ export default function VetApp() {
           <div className="demo-note">
             <span className="live-dot"></span>
             <div>
-              <strong>Modo demostración</strong>
-              <small>Datos locales activos</small>
+              <strong>Aiven PostgreSQL</strong>
+              <small>BD en la nube conectada</small>
             </div>
           </div>
           <button className="nav-item">

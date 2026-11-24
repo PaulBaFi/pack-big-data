@@ -1,7 +1,8 @@
 import type { APIRoute } from 'astro';
-import { getPool } from '@/lib/db';
+import { getPool, closePool } from '@/lib/db';
 
 export const prerender = false;
+export const maxDuration = 30;
 
 export const GET: APIRoute = async ({ request }) => {
   try {
@@ -34,6 +35,8 @@ export const GET: APIRoute = async ({ request }) => {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
+  } finally {
+    await closePool();
   }
 };
 
@@ -81,5 +84,7 @@ export const POST: APIRoute = async ({ request }) => {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
+  } finally {
+    await closePool();
   }
 };

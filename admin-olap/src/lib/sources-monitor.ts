@@ -170,9 +170,9 @@ export async function getSourcePreview(sourceId: string): Promise<any[]> {
   try {
     if (sourceId === 'castillonv2') {
       const res = await query(
-        `SELECT "IDVENTA", "DOCUMENTO", "FECHAVENTA", "TOTALPAGAR", "CLIENTE" 
+        `SELECT "IDVENTAS", "DOCUMENTO", "FECHAVENTA", "TOTALPAGAR", "IDCLIENTE" 
          FROM "VENTAS" 
-         ORDER BY "FECHAVENTA" DESC NULLS LAST, "IDVENTA" DESC 
+         ORDER BY "FECHAVENTA" DESC NULLS LAST, "IDVENTAS" DESC 
          LIMIT 12;`,
         [],
         'castillonv2'
@@ -187,18 +187,18 @@ export async function getSourcePreview(sourceId: string): Promise<any[]> {
       );
       const existing = new Set(olapRes.rows.map((r) => r.nro_comprobante));
       return res.rows.map((r) => ({
-        id: r.IDVENTA,
-        documento: r.DOCUMENTO,
+        id: r.IDVENTAS,
+        documento: r.DOCUMENTO || `VTA-${r.IDVENTAS}`,
         fecha: r.FECHAVENTA ? new Date(r.FECHAVENTA).toISOString().split('T')[0] : 'N/A',
         total: parseFloat(r.TOTALPAGAR || 0).toFixed(2),
-        referencia: r.CLIENTE || 'Consumidor Final',
+        referencia: r.IDCLIENTE ? `Cliente #${r.IDCLIENTE}` : 'Consumidor Final',
         isSynced: existing.has(r.DOCUMENTO),
       }));
     }
 
     if (sourceId === 'veterinaria') {
       const res = await query(
-        `SELECT "IDVENTA", "TIPO_COMPROBANTE", COALESCE("FECH_VENTA", "FECCRE") as fecha, "MONTOTOTAL", "IDCLIENTE"
+        `SELECT "IDVENTA", "TIPO_COMPROBANTE", COALESCE("FECH_VENTA", "FECCRE") as fecha, "TOTAL", "TOTALAAPAGAR", "IDCLIENTE"
          FROM "VENTA" 
          ORDER BY fecha DESC NULLS LAST, "IDVENTA" DESC 
          LIMIT 12;`,
@@ -211,17 +211,17 @@ export async function getSourcePreview(sourceId: string): Promise<any[]> {
         id: r.IDVENTA,
         documento: `VET-${r.IDVENTA}`,
         fecha: r.fecha ? new Date(r.fecha).toISOString().split('T')[0] : 'N/A',
-        total: parseFloat(r.MONTOTOTAL || 0).toFixed(2),
-        referencia: r.TIPO_COMPROBANTE || 'BOLETA',
+        total: parseFloat(r.TOTALAAPAGAR || r.TOTAL || 0).toFixed(2),
+        referencia: r.TIPO_COMPROBANTE === 'F' ? 'FACTURA' : 'BOLETA',
         isSynced: true,
       }));
     }
 
     if (sourceId === 'samar') {
       const res = await query(
-        `SELECT "ID_VENTA", "DOCUMENTO", "TIPO_DOCUMENTO", "FECHA", "TOTAL_DOCUMENTO" 
+        `SELECT "DOCUMENTO", "TIPO_DOCUMENTO", "FECHA", "TOTAL_DOCUMENTO", "ID_CLIENTE" 
          FROM "VENTAS" 
-         ORDER BY "FECHA" DESC NULLS LAST, "ID_VENTA" DESC 
+         ORDER BY "FECHA" DESC NULLS LAST, "DOCUMENTO" DESC 
          LIMIT 12;`,
         [],
         'samar'
@@ -236,11 +236,11 @@ export async function getSourcePreview(sourceId: string): Promise<any[]> {
       );
       const existing = new Set(olapRes.rows.map((r) => r.nro_comprobante));
       return res.rows.map((r) => ({
-        id: r.ID_VENTA,
+        id: r.DOCUMENTO,
         documento: r.DOCUMENTO,
         fecha: r.FECHA ? new Date(r.FECHA).toISOString().split('T')[0] : 'N/A',
         total: parseFloat(r.TOTAL_DOCUMENTO || 0).toFixed(2),
-        referencia: r.TIPO_DOCUMENTO || 'FACTURA',
+        referencia: `${r.TIPO_DOCUMENTO || 'FACTURA'} (${r.ID_CLIENTE || 'CLI'})`,
         isSynced: existing.has(r.DOCUMENTO),
       }));
     }
