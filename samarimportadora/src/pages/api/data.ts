@@ -40,6 +40,43 @@ async function generatedId(client: import('pg').PoolClient, def: EntityDefinitio
 export const GET: APIRoute = async ({ request }) => {
   try {
     const url = new URL(request.url), table = url.searchParams.get('table');
+    if (!table || table === 'all') {
+      const client = await getPool().connect();
+      try {
+        const clientes = (await client.query('SELECT * FROM "CLIENTES" ORDER BY "ID_CLIENTE" LIMIT 100')).rows;
+        const articulos = (await client.query('SELECT * FROM "ARTICULOS" ORDER BY "CODIGO_PRODUCTO" LIMIT 100')).rows;
+        const vendedores = (await client.query('SELECT * FROM "VENDEDORES" ORDER BY "ID_VENDEDOR" LIMIT 100')).rows;
+        const sucursales = (await client.query('SELECT * FROM "SUCURSAL" ORDER BY "SUCURSAL_ID" LIMIT 100')).rows;
+        const regiones = (await client.query('SELECT * FROM "REGION" ORDER BY "REGION_ID" LIMIT 100')).rows;
+        const provincias = (await client.query('SELECT * FROM "PROVINCIA" ORDER BY "PROVINCIA_ID" LIMIT 100')).rows;
+        const comunas = (await client.query('SELECT * FROM "COMUNA" ORDER BY "COMUNA_ID" LIMIT 100')).rows;
+        const clientesBuey = (await client.query('SELECT * FROM "ClientesBuey" ORDER BY "ID_CLIENTE" LIMIT 100')).rows;
+        const prospectos = (await client.query('SELECT * FROM "ProspectosClientesBuey" ORDER BY "NRO_CLIENTE" LIMIT 100')).rows;
+        const ventas = (await client.query(`SELECT v.*, concat_ws(' ', c."NOMBRE", c."APELLIDO") "CLIENTE_NOMBRE", concat_ws(' ', ve."Nombre", ve."Apellido") "VENDEDOR_NOMBRE", s."NOMBRE_SUCURSAL" FROM "VENTAS" v LEFT JOIN "CLIENTES" c ON c."ID_CLIENTE"=v."ID_CLIENTE" LEFT JOIN "VENDEDORES" ve ON ve."ID_VENDEDOR"=v."ID_VENDEDOR" LEFT JOIN "SUCURSAL" s ON s."SUCURSAL_ID"=v."SUCURSAL_ID" ORDER BY v."FECHA" DESC, v."DOCUMENTO" DESC LIMIT 100`)).rows;
+        const docs = ventas.map((v: any) => v.DOCUMENTO);
+        const detalleVentas = docs.length ? (await client.query('SELECT * FROM "DETALLE_VENTA" WHERE "DOCUMENTO" = ANY($1::text[])', [docs])).rows : [];
+
+        return json({
+          ok: true,
+          all: true,
+          data: {
+            clientes,
+            articulos,
+            vendedores,
+            sucursales,
+            regiones,
+            provincias,
+            comunas,
+            clientesBuey,
+            prospectos,
+            ventas,
+            detalleVentas,
+          }
+        });
+      } finally {
+        client.release();
+      }
+    }
     if (!isEntityName(table)) return json({ ok: false, error: 'Entidad no permitida' }, 400);
     const def = ENTITIES[table], page = Math.max(1, Number(url.searchParams.get('page')) || 1), pageSize = Math.min(100, Math.max(1, Number(url.searchParams.get('pageSize')) || 25)), search = (url.searchParams.get('search') ?? '').trim();
     const values: unknown[] = [];

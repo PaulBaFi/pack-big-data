@@ -682,9 +682,19 @@ export default function App() {
     ) : (
       <Dashboard store={store} />
     );
-  if (state.loading) return <Card><p className="text-slate-600">Cargando datos desde PostgreSQL…</p></Card>;
-  if (state.error) return <Card><h2 className="font-semibold text-red-700">No se pudo conectar con PostgreSQL</h2><p className="mt-2 text-sm text-slate-600">{state.error}</p><Button className="mt-4" onClick={() => state.reload()}>Reintentar</Button></Card>;
-  return view;
+  if (state.loading && store.clientes.length === 0) return <Card><p className="text-slate-600">Cargando datos desde PostgreSQL…</p></Card>;
+  if (state.error && store.clientes.length === 0) return <Card><h2 className="font-semibold text-red-700">No se pudo conectar con PostgreSQL</h2><p className="mt-2 text-sm text-slate-600">{state.error}</p><Button className="mt-4" onClick={() => state.reload()}>Reintentar</Button></Card>;
+  return (
+    <>
+      {state.error && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 flex items-center justify-between">
+          <span>⚠️ Aviso: Mostrando datos locales/caché ({state.error}).</span>
+          <Button className="!px-3 !py-1 !text-xs bg-amber-600 hover:bg-amber-700 text-white" onClick={() => state.reload()}>Reintentar</Button>
+        </div>
+      )}
+      {view}
+    </>
+  );
 }
 function Geo({ store }: { store: any }) {
   return (

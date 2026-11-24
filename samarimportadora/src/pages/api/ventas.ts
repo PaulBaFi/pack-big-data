@@ -5,17 +5,19 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 export const GET: APIRoute = async ({ request }) => {
+  const client = await getPool().connect();
   try {
     const url = new URL(request.url), page = Math.max(1, Number(url.searchParams.get('page')) || 1), pageSize = Math.min(100, Math.max(1, Number(url.searchParams.get('pageSize')) || 25)), search = (url.searchParams.get('search') ?? '').trim();
     const values: unknown[] = [], where = search ? ' WHERE v."DOCUMENTO" ILIKE $1' : '';
     if (search) values.push(`%${search}%`);
-    const count = await getPool().query(`SELECT count(*)::int total FROM "VENTAS" v${where}`, values);
+    const count = await client.query(`SELECT count(*)::int total FROM "VENTAS" v${where}`, values);
     values.push(pageSize, (page - 1) * pageSize);
-    const result = await getPool().query(`SELECT v.*, concat_ws(' ', c."NOMBRE", c."APELLIDO") "CLIENTE_NOMBRE", concat_ws(' ', ve."Nombre", ve."Apellido") "VENDEDOR_NOMBRE", s."NOMBRE_SUCURSAL" FROM "VENTAS" v LEFT JOIN "CLIENTES" c ON c."ID_CLIENTE"=v."ID_CLIENTE" LEFT JOIN "VENDEDORES" ve ON ve."ID_VENDEDOR"=v."ID_VENDEDOR" LEFT JOIN "SUCURSAL" s ON s."SUCURSAL_ID"=v."SUCURSAL_ID"${where} ORDER BY v."FECHA" DESC, v."DOCUMENTO" DESC LIMIT $${values.length - 1} OFFSET $${values.length}`, values);
+    const result = await client.query(`SELECT v.*, concat_ws(' ', c."NOMBRE", c."APELLIDO") "CLIENTE_NOMBRE", concat_ws(' ', ve."Nombre", ve."Apellido") "VENDEDOR_NOMBRE", s."NOMBRE_SUCURSAL" FROM "VENTAS" v LEFT JOIN "CLIENTES" c ON c."ID_CLIENTE"=v."ID_CLIENTE" LEFT JOIN "VENDEDORES" ve ON ve."ID_VENDEDOR"=v."ID_VENDEDOR" LEFT JOIN "SUCURSAL" s ON s."SUCURSAL_ID"=v."SUCURSAL_ID"${where} ORDER BY v."FECHA" DESC, v."DOCUMENTO" DESC LIMIT $${values.length - 1} OFFSET $${values.length}`, values);
     const documents = result.rows.map((row) => row.DOCUMENTO);
-    const details = documents.length ? await getPool().query('SELECT * FROM "DETALLE_VENTA" WHERE "DOCUMENTO" = ANY($1::text[])', [documents]) : { rows: [] };
+    const details = documents.length ? await client.query('SELECT * FROM "DETALLE_VENTA" WHERE "DOCUMENTO" = ANY($1::text[])', [documents]) : { rows: [] };
     return json({ ok: true, data: result.rows, details: details.rows, pagination: { page, pageSize, total: count.rows[0].total, totalPages: Math.max(1, Math.ceil(count.rows[0].total / pageSize)) } });
   } catch (error: any) { return json({ ok: false, error: error?.message ?? 'No se pudieron consultar las ventas' }, 500); }
+  finally { client.release(); }
 };
 
 export const POST: APIRoute = async ({ request }) => {
