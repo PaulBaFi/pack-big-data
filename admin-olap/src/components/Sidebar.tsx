@@ -45,13 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath }) => {
       href: "/dashboard-bi",
       icon: ChartNoAxesCombined,
       active: currentPath.startsWith("/dashboard-bi"),
-    },
-    {
-      name: "Reportes Paginados",
-      href: "/reportes-bi",
-      icon: FileText,
-      active: currentPath.startsWith("/reportes-bi"),
-    },
+    }
   ];
 
   return (
