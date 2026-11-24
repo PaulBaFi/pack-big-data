@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   ChefHat,
   ChevronRight,
@@ -11,13 +11,13 @@ import {
   Wallet,
   Printer,
   CheckCircle2,
-  Clock,
-  Check,
-  Eye,
-  MoreVertical,
+  Trash2,
+  CreditCard,
   Receipt,
   FileText,
   DollarSign,
+  UserCheck,
+  Minus,
 } from "lucide-react";
 import { resetData, saveData } from "@/services/storageService";
 import {
@@ -39,6 +39,14 @@ import Stat from "./Stat";
 import { money } from "@/helpers/formatMoney";
 import { date } from "@/helpers/formatDate";
 
+interface OrderLineItem {
+  id: string;
+  prodId: number;
+  nombre: string;
+  precio: number;
+  qty: number;
+}
+
 function Module({
   view,
   db,
@@ -50,6 +58,7 @@ function Module({
   clientName,
   personName,
   go,
+  user,
 }: {
   view: View;
   db: Database;
@@ -61,10 +70,12 @@ function Module({
   clientName: (id: number) => string;
   personName: (id: number) => string;
   go: (v: View) => void;
+  user?: any;
 }) {
   const [tab, setTab] = useState("Todos");
   const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [orderToCharge, setOrderToCharge] = useState<any | null>(null);
   const [selectedMesaForOrder, setSelectedMesaForOrder] = useState<number | null>(null);
   const [selectedPrintItem, setSelectedPrintItem] = useState<{
     tipo: string;
@@ -75,9 +86,18 @@ function Module({
     estado: string;
     total: number;
     cliente: string;
+    items?: { nombre: string; cant: number; pu: number; sub: number }[];
   } | null>(null);
   const [clientActionTarget, setClientActionTarget] = useState<any | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Estados para creación de pedido con múltiples productos
+  const [newOrderItems, setNewOrderItems] = useState<OrderLineItem[]>([]);
+  const [builderProdId, setBuilderProdId] = useState<number>(0);
+  const [builderQty, setBuilderQty] = useState<number>(1);
+  const [selectedAttendant, setSelectedAttendant] = useState<string>(
+    user?.nombre || "Thiago Alejandro Ramírez"
+  );
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -85,6 +105,61 @@ function Module({
   };
 
   const active = (s: string) => (s || "").toLowerCase().includes(query.toLowerCase());
+
+  // Nombre de quien atiende por defecto
+  const currentAttendantName = user?.nombre || "Thiago Alejandro Ramírez";
+
+  // Lista de personal disponible para atender pedidos
+  const attendantsList = useMemo(() => {
+    const list: string[] = [currentAttendantName];
+    (db.EMPLEADO || []).forEach((e) => {
+      const name = personName(e.IDPERSONA);
+      if (name && !list.includes(name)) list.push(name);
+    });
+    return list;
+  }, [db.EMPLEADO, db.PERSONA, currentAttendantName]);
+
+  // Manejo de productos dinámicos en el constructor de pedidos
+  const handleAddProductToBuilder = () => {
+    const prodId = builderProdId || (db.PRODUCTO?.[0]?.IDPRODUCTO ?? 1);
+    const prod = (db.PRODUCTO || []).find((p) => p.IDPRODUCTO === prodId);
+    if (!prod) return;
+
+    const existingIndex = newOrderItems.findIndex((it) => it.prodId === prodId);
+    if (existingIndex >= 0) {
+      const updated = [...newOrderItems];
+      updated[existingIndex].qty += builderQty;
+      setNewOrderItems(updated);
+    } else {
+      setNewOrderItems((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-${Math.random()}`,
+          prodId: prod.IDPRODUCTO,
+          nombre: prod.NOMPRODUCTO,
+          precio: Number(prod.PRECIO) || 0,
+          qty: builderQty,
+        },
+      ]);
+    }
+    setBuilderQty(1);
+  };
+
+  const handleRemoveBuilderItem = (id: string) => {
+    setNewOrderItems((prev) => prev.filter((it) => it.id !== id));
+  };
+
+  const handleUpdateBuilderQty = (id: string, delta: number) => {
+    setNewOrderItems((prev) =>
+      prev
+        .map((it) => (it.id === id ? { ...it, qty: Math.max(1, it.qty + delta) } : it))
+        .filter((it) => it.qty > 0)
+    );
+  };
+
+  const totalOrderBuilder = useMemo(() => {
+    return newOrderItems.reduce((acc, it) => acc + it.qty * it.precio, 0);
+  }, [newOrderItems]);
 
   // 1. CLIENTES: Agregar nuevo cliente
   const addClient = async (e: any) => {
@@ -188,7 +263,7 @@ function Module({
       IDMESA: id,
       NUMPISO: piso,
       NUNMESA: numMesa,
-      ESTADO: "D", // Disponible
+      ESTADO: "D",
     };
 
     const nextDb: Database = {
@@ -218,19 +293,36 @@ function Module({
     await updateRecord("MESAS", "IDMESA", mesa.IDMESA, { ESTADO: newStatus });
   };
 
-  // 5. OPERACION: Crear pedido
+  // 5. OPERACION: Crear pedido con múltiples productos
   const addOrder = async (e: any) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     const mesaId = Number(f.get("mesaId") || selectedMesaForOrder || (db.MESAS?.[0]?.IDMESA ?? 1));
-    const prodId = Number(f.get("prodId") || (db.PRODUCTO?.[0]?.IDPRODUCTO ?? 1));
-    const qty = Math.max(1, parseInt(String(f.get("qty") || "1"), 10));
+    const attendantName = String(f.get("attendant") || selectedAttendant || currentAttendantName);
 
-    const product = (db.PRODUCTO || []).find((p) => p.IDPRODUCTO === prodId);
-    const price = product ? Number(product.PRECIO) || 0 : 15;
+    // Si la lista de productos agregados está vacía, incluir al menos el producto del selector actual
+    let itemsToSave = [...newOrderItems];
+    if (itemsToSave.length === 0) {
+      const prodId = builderProdId || (db.PRODUCTO?.[0]?.IDPRODUCTO ?? 1);
+      const prod = (db.PRODUCTO || []).find((p) => p.IDPRODUCTO === prodId);
+      if (prod) {
+        itemsToSave.push({
+          id: "default-1",
+          prodId: prod.IDPRODUCTO,
+          nombre: prod.NOMPRODUCTO,
+          precio: Number(prod.PRECIO) || 0,
+          qty: builderQty || 1,
+        });
+      }
+    }
+
+    if (itemsToSave.length === 0) {
+      showToast("Por favor agrega al menos un producto a la comanda.");
+      return;
+    }
 
     const orderId = nextId(db.PEDIDOS || [], "IDPEDIDO");
-    const detailId = nextId(db.DETALLE_PEDIDO || [], "IDDETALLE_PEDIDO");
+    let nextDetailId = nextId(db.DETALLE_PEDIDO || [], "IDDETALLE_PEDIDO");
     const todayStr = new Date().toISOString().split("T")[0];
 
     const newOrder = {
@@ -240,16 +332,23 @@ function Module({
       ESTADO: "P", // Pendiente
     };
 
-    const newDetail = {
-      IDDETALLE_PEDIDO: detailId,
-      IDPEDIDO: orderId,
-      IDPRODUCTO: prodId,
-      IDAREA: 1,
-      IDUSUARIO: 1,
-      CANTIDAD: qty,
-      PRECIO: price,
-      ESTADO: "P",
-    };
+    const detailsToInsert: any[] = [];
+    const operations: { table: string; row: any }[] = [{ table: "PEDIDOS", row: newOrder }];
+
+    for (const item of itemsToSave) {
+      const det = {
+        IDDETALLE_PEDIDO: nextDetailId++,
+        IDPEDIDO: orderId,
+        IDPRODUCTO: item.prodId,
+        IDAREA: 1,
+        IDUSUARIO: user?.id || 1,
+        CANTIDAD: item.qty,
+        PRECIO: item.precio,
+        ESTADO: "P",
+      };
+      detailsToInsert.push(det);
+      operations.push({ table: "DETALLE_PEDIDO", row: det });
+    }
 
     // Actualizar mesa a ocupada
     const nextMesas = (db.MESAS || []).map((m) =>
@@ -259,7 +358,7 @@ function Module({
     const nextDb: Database = {
       ...db,
       PEDIDOS: [...(db.PEDIDOS || []), newOrder],
-      DETALLE_PEDIDO: [...(db.DETALLE_PEDIDO || []), newDetail],
+      DETALLE_PEDIDO: [...(db.DETALLE_PEDIDO || []), ...detailsToInsert],
       MESAS: nextMesas,
     };
 
@@ -267,16 +366,18 @@ function Module({
     saveData(nextDb);
     setModal(null);
     setSelectedMesaForOrder(null);
-    showToast(`Pedido #${orderId} registrado para Mesa ${db.MESAS?.find((m) => m.IDMESA === mesaId)?.NUNMESA || mesaId}`);
+    setNewOrderItems([]);
+    showToast(
+      `Pedido #${orderId} registrado (${itemsToSave.length} productos) para Mesa ${
+        db.MESAS?.find((m) => m.IDMESA === mesaId)?.NUNMESA || mesaId
+      } por ${attendantName}`
+    );
 
-    await insertOperations([
-      { table: "PEDIDOS", row: newOrder },
-      { table: "DETALLE_PEDIDO", row: newDetail },
-    ]);
+    await insertOperations(operations);
     await updateRecord("MESAS", "IDMESA", mesaId, { ESTADO: "O" });
   };
 
-  // 6. OPERACION: Cambiar estado de pedido (Pendiente -> Completado / Atendido)
+  // 6. OPERACION: Cambiar estado de pedido (Pendiente -> Atendido)
   const updateOrderStatus = async (orderId: number, newStatus: string) => {
     const nextPedidos = (db.PEDIDOS || []).map((p) =>
       p.IDPEDIDO === orderId ? { ...p, ESTADO: newStatus } : p
@@ -287,30 +388,37 @@ function Module({
     if (selectedOrder && selectedOrder.IDPEDIDO === orderId) {
       setSelectedOrder({ ...selectedOrder, ESTADO: newStatus });
     }
-    showToast(`Pedido #${orderId} actualizado a estado "${newStatus}"`);
+    const label = newStatus === "C" ? "Atendido" : newStatus === "P" ? "Pendiente" : "Cobrado";
+    showToast(`Pedido #${orderId} actualizado a estado "${label}"`);
 
     await updateRecord("PEDIDOS", "IDPEDIDO", orderId, { ESTADO: newStatus });
   };
 
-  // 7. VENTAS: Registrar venta a partir de pedido
-  const addSale = async (e: any) => {
+  // 7. VENTAS / COBRAR: Liquidar pedido y generar comprobante
+  const handleExecuteChargeOrder = async (e: any) => {
     e.preventDefault();
+    if (!orderToCharge) return;
+
     const f = new FormData(e.currentTarget);
-    const pedidoId = Number(f.get("pedidoId"));
     const clienteId = Number(f.get("clienteId") || (db.CLIENTE?.[0]?.IDCLIENTE ?? 1));
     const metodoId = Number(f.get("metodoId") || (db.METODO_PAGO?.[0]?.IDMETODO_PAGO ?? 1));
     const tipoComprobante = String(f.get("tipoComprobante") || "BOLETA");
 
-    // Calcular importe desde DETALLE_PEDIDO o monto ingresado
-    const orderItems = (db.DETALLE_PEDIDO || []).filter((d) => d.IDPEDIDO === pedidoId);
-    let subtotalCalculado = orderItems.reduce((acc, d) => acc + (Number(d.CANTIDAD) || 1) * (Number(d.PRECIO) || 0), 0);
-    if (subtotalCalculado <= 0) {
-      subtotalCalculado = parseFloat(String(f.get("totalManual") || "35.00"));
+    // Calcular el consumo real del pedido
+    const orderItems = (db.DETALLE_PEDIDO || []).filter(
+      (d) => d.IDPEDIDO === orderToCharge.IDPEDIDO
+    );
+    let totalConsumo = orderItems.reduce(
+      (acc, d) => acc + (Number(d.CANTIDAD) || 1) * (Number(d.PRECIO) || 0),
+      0
+    );
+    if (totalConsumo <= 0) {
+      totalConsumo = parseFloat(String(f.get("totalManual") || "35.00"));
     }
 
-    const subtotal = parseFloat((subtotalCalculado / 1.18).toFixed(2));
-    const igv = parseFloat((subtotalCalculado - subtotal).toFixed(2));
-    const total = subtotalCalculado;
+    const subtotal = parseFloat((totalConsumo / 1.18).toFixed(2));
+    const igv = parseFloat((totalConsumo - subtotal).toFixed(2));
+    const total = totalConsumo;
 
     const saleId = nextId(db.VENTAS || [], "IDVENTAS");
     const docNum = `${tipoComprobante === "FACTURA" ? "F001" : "B001"}-${String(saleId).padStart(6, "0")}`;
@@ -319,18 +427,17 @@ function Module({
     const newSale = {
       IDVENTAS: saleId,
       IDMETODO_PAGO: metodoId,
-      IDPEDIDO: pedidoId,
-      IDUSUARIO: 1,
+      IDPEDIDO: orderToCharge.IDPEDIDO,
+      IDUSUARIO: user?.id || 1,
       IDCLIENTE: clienteId,
       FECHAVENTA: todayStr,
       DOCUMENTO: docNum,
       SUBTOTOTAL: subtotal,
       IGV: igv,
       TOTALPAGAR: total,
-      ESTADO: "C", // Cobrado / Confirmado
+      ESTADO: "C", // Confirmado / Cobrado
     };
 
-    // Crear comprobante electronico
     const operations: { table: string; row: any }[] = [{ table: "VENTAS", row: newSale }];
     let nextBoleta = [...(db.BOLETA || [])];
     let nextFactura = [...(db.FACTURA || [])];
@@ -361,12 +468,10 @@ function Module({
       operations.push({ table: "BOLETA", row: newBoleta });
     }
 
-    // Actualizar estado del pedido a 'F' (Facturado) y liberar la mesa
-    const pedidoObj = (db.PEDIDOS || []).find((p) => p.IDPEDIDO === pedidoId);
-    const mesaId = pedidoObj?.IDMESA;
-
+    // Actualizar estado del pedido a 'F' (Facturado) y liberar la mesa a 'D' (Disponible)
+    const mesaId = orderToCharge.IDMESA;
     const nextPedidos = (db.PEDIDOS || []).map((p) =>
-      p.IDPEDIDO === pedidoId ? { ...p, ESTADO: "F" } : p
+      p.IDPEDIDO === orderToCharge.IDPEDIDO ? { ...p, ESTADO: "F" } : p
     );
     const nextMesas = mesaId
       ? (db.MESAS || []).map((m) => (m.IDMESA === mesaId ? { ...m, ESTADO: "D" } : m))
@@ -383,11 +488,41 @@ function Module({
 
     setDb(nextDb);
     saveData(nextDb);
+
+    const chargedOrderId = orderToCharge.IDPEDIDO;
+    setOrderToCharge(null);
+    setSelectedOrder(null);
     setModal(null);
-    showToast(`Venta #${saleId} registrada con comprobante ${docNum}`);
+
+    showToast(`Pedido #${chargedOrderId} cobrado exitosamente con comprobante ${docNum}`);
+
+    // Abrir de inmediato la vista previa para imprimir el comprobante térmico
+    const cliNombre = clientName(clienteId);
+    setSelectedPrintItem({
+      tipo: tipoComprobante === "FACTURA" ? "Factura Electrónica" : "Boleta Electrónica",
+      serie: tipoComprobante === "FACTURA" ? "F001" : "B001",
+      numero: String(saleId).padStart(6, "0"),
+      idVenta: saleId,
+      fecha: new Date().toISOString(),
+      estado: "A",
+      total,
+      cliente: cliNombre,
+      items: orderItems.map((d) => {
+        const prod = (db.PRODUCTO || []).find((p) => p.IDPRODUCTO === d.IDPRODUCTO);
+        const cant = Number(d.CANTIDAD) || 1;
+        const pu = Number(d.PRECIO) || 0;
+        return {
+          nombre: prod?.NOMPRODUCTO || `Producto #${d.IDPRODUCTO}`,
+          cant,
+          pu,
+          sub: cant * pu,
+        };
+      }),
+    });
+    setModal("print-receipt");
 
     await insertOperations(operations);
-    await updateRecord("PEDIDOS", "IDPEDIDO", pedidoId, { ESTADO: "F" });
+    await updateRecord("PEDIDOS", "IDPEDIDO", chargedOrderId, { ESTADO: "F" });
     if (mesaId) {
       await updateRecord("MESAS", "IDMESA", mesaId, { ESTADO: "D" });
     }
@@ -443,6 +578,22 @@ function Module({
     const cli = sale ? clientName(sale.IDCLIENTE) : "Cliente General";
     const total = sale ? Number(sale.TOTALPAGAR) || 0 : 0;
 
+    let items: { nombre: string; cant: number; pu: number; sub: number }[] = [];
+    if (sale && sale.IDPEDIDO) {
+      const orderItems = (db.DETALLE_PEDIDO || []).filter((d) => d.IDPEDIDO === sale.IDPEDIDO);
+      items = orderItems.map((d) => {
+        const prod = (db.PRODUCTO || []).find((p) => p.IDPRODUCTO === d.IDPRODUCTO);
+        const cant = Number(d.CANTIDAD) || 1;
+        const pu = Number(d.PRECIO) || 0;
+        return {
+          nombre: prod?.NOMPRODUCTO || `Platillo #${d.IDPRODUCTO}`,
+          cant,
+          pu,
+          sub: cant * pu,
+        };
+      });
+    }
+
     setSelectedPrintItem({
       tipo,
       serie: item.SERIE,
@@ -452,6 +603,7 @@ function Module({
       estado: item.ESTADO,
       total,
       cliente: cli,
+      items: items.length > 0 ? items : undefined,
     });
     setModal("print-receipt");
   };
@@ -476,6 +628,22 @@ function Module({
     const cat = (db.CATEGORIA || []).find((c) => c.IDCATEGORIA === p.IDCATEGORIA);
     return matchesQuery && cat?.NOMCATEGORIA === selectedCategory;
   });
+
+  // Cálculos proporcionales seguros para reportes (evitar barras de 400% o texto desbordado)
+  const maxVentasPorMetodo = useMemo(() => {
+    const counts = (db.METODO_PAGO || []).map((m) =>
+      (db.VENTAS || []).filter((v) => v.IDMETODO_PAGO === m.IDMETODO_PAGO).length
+    );
+    return Math.max(...counts, 1);
+  }, [db.METODO_PAGO, db.VENTAS]);
+
+  const reportStatusCounts = useMemo(() => {
+    const p = (db.PEDIDOS || []).filter((x) => x.ESTADO === "P").length;
+    const c = (db.PEDIDOS || []).filter((x) => x.ESTADO === "C" || x.ESTADO === "1").length;
+    const f = (db.PEDIDOS || []).filter((x) => x.ESTADO === "F").length;
+    const max = Math.max(p, c, f, 1);
+    return { p, c, f, max };
+  }, [db.PEDIDOS]);
 
   return (
     <>
@@ -508,7 +676,6 @@ function Module({
       {/* ================= VISTA CLIENTES ================= */}
       {view === "clientes" && (
         <PageHead
-          title="Clientes"
           desc="Personas naturales y empresas registradas"
           action="Nuevo cliente"
           onAction={() => setModal("client")}
@@ -635,7 +802,6 @@ function Module({
       {/* ================= VISTA PRODUCTOS ================= */}
       {view === "productos" && (
         <PageHead
-          title="Productos"
           desc="Catálogo de platos, bebidas y categorías gastronómicas"
           action="Nuevo producto"
           onAction={() => setModal("product")}
@@ -732,11 +898,11 @@ function Module({
       {/* ================= VISTA MESAS Y PEDIDOS ================= */}
       {view === "operacion" && (
         <PageHead
-          title="Mesas y pedidos"
-          desc="Control operativo del salón en vivo. Haz clic en una mesa para alternar su estado."
+          desc="Control operativo del salón en vivo. Haz clic en una mesa para alternar entre Disponible y Ocupada."
           action="Crear pedido"
           onAction={() => {
             setSelectedMesaForOrder(null);
+            setNewOrderItems([]);
             setModal("order");
           }}
         >
@@ -774,7 +940,7 @@ function Module({
             <div className="section-head">
               <div>
                 <h3>Pedidos registrados</h3>
-                <p>Estados: P (Pendiente), C (Completado/Servido), F (Facturado/Cobrado)</p>
+                <p>Estados: Pendiente (en cocina), Atendido (en mesa), Cobrado (facturado)</p>
               </div>
               <SearchBox
                 value={query}
@@ -811,21 +977,40 @@ function Module({
                     date(p.FECHA),
                     money(amount > 0 ? amount : 35),
                     badge(p.ESTADO),
-                    <button
-                      className="link"
-                      onClick={() => {
-                        setSelectedOrder(p);
-                        setModal("order-detail");
-                      }}
-                    >
-                      Consultar detalle
-                    </button>,
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <button
+                        className="link"
+                        onClick={() => {
+                          setSelectedOrder(p);
+                          setModal("order-detail");
+                        }}
+                      >
+                        Consultar detalle
+                      </button>
+                      {p.ESTADO !== "F" && (
+                        <button
+                          className="btn primary"
+                          style={{
+                            padding: "3px 8px",
+                            fontSize: 11,
+                            background: "#10b981",
+                            borderRadius: 6,
+                          }}
+                          onClick={() => {
+                            setOrderToCharge(p);
+                            setModal("charge-order");
+                          }}
+                        >
+                          Cobrar
+                        </button>
+                      )}
+                    </div>,
                   ];
                 })}
             />
           </div>
 
-          {/* MODAL CREAR PEDIDO */}
+          {/* MODAL CREAR PEDIDO CON MULTIPLES PRODUCTOS */}
           {modal === "order" && (
             <Modal title="Crear nuevo pedido de salón" close={() => setModal(null)}>
               <form onSubmit={addOrder}>
@@ -845,33 +1030,158 @@ function Module({
                     </select>
                   </label>
                   <label>
-                    Plato / Producto principal *
-                    <select name="prodId">
-                      {(db.PRODUCTO || []).map((p) => (
-                        <option key={p.IDPRODUCTO} value={p.IDPRODUCTO}>
-                          {p.NOMPRODUCTO} — {money(p.PRECIO)}
+                    Mozo / Atendido por *
+                    <select
+                      name="attendant"
+                      value={selectedAttendant}
+                      onChange={(e) => setSelectedAttendant(e.target.value)}
+                    >
+                      {attendantsList.map((att) => (
+                        <option key={att} value={att}>
+                          {att} {att === currentAttendantName ? "(Tú)" : ""}
                         </option>
                       ))}
                     </select>
                   </label>
                 </div>
-                <div className="form-grid">
-                  <label>
-                    Cantidad de porciones *
-                    <input
-                      name="qty"
-                      type="number"
-                      min="1"
-                      max="20"
-                      defaultValue="1"
-                      required
-                    />
-                  </label>
-                  <label>
-                    Mozo / Usuario
-                    <input defaultValue="Administrador / Turno Mañana" readOnly />
-                  </label>
+
+                {/* CONSTRUCTOR DE ITEMS / PRODUCTOS */}
+                <div
+                  style={{
+                    marginTop: 14,
+                    marginBottom: 14,
+                    padding: 14,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 8,
+                  }}
+                >
+                  <h4 style={{ margin: "0 0 10px 0", fontSize: 13, fontWeight: 700, color: "#1e293b" }}>
+                    Agregar productos a la comanda
+                  </h4>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <label style={{ fontSize: 12, display: "block", marginBottom: 4, color: "#64748b" }}>
+                        Seleccionar plato o bebida
+                      </label>
+                      <select
+                        value={builderProdId || db.PRODUCTO?.[0]?.IDPRODUCTO}
+                        onChange={(e) => setBuilderProdId(Number(e.target.value))}
+                        style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: "1px solid #cbd5e1" }}
+                      >
+                        {(db.PRODUCTO || []).map((p) => (
+                          <option key={p.IDPRODUCTO} value={p.IDPRODUCTO}>
+                            {p.NOMPRODUCTO} — {money(p.PRECIO)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div style={{ width: 85 }}>
+                      <label style={{ fontSize: 12, display: "block", marginBottom: 4, color: "#64748b" }}>
+                        Porciones
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={builderQty}
+                        onChange={(e) => setBuilderQty(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: "1px solid #cbd5e1" }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="btn primary"
+                      style={{ padding: "8px 14px", height: 38, fontSize: 12 }}
+                      onClick={handleAddProductToBuilder}
+                    >
+                      <Plus size={15} /> Añadir plato
+                    </button>
+                  </div>
+
+                  {/* LISTADO DE PRODUCTOS AÑADIDOS AL PEDIDO */}
+                  <div style={{ marginTop: 14 }}>
+                    {newOrderItems.length === 0 ? (
+                      <p style={{ margin: 0, fontSize: 12, color: "#94a3b8", fontStyle: "italic" }}>
+                        Aún no has agregado productos. Selecciona un plato arriba y pulsa "Añadir plato".
+                      </p>
+                    ) : (
+                      <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+                        <thead>
+                          <tr style={{ borderBottom: "1px solid #cbd5e1", textAlign: "left", color: "#64748b" }}>
+                            <th style={{ padding: "6px 4px" }}>Plato</th>
+                            <th style={{ padding: "6px 4px", width: 90, textAlign: "center" }}>Cant.</th>
+                            <th style={{ padding: "6px 4px", width: 80, textAlign: "right" }}>P. Unit</th>
+                            <th style={{ padding: "6px 4px", width: 80, textAlign: "right" }}>Subtotal</th>
+                            <th style={{ padding: "6px 4px", width: 36 }}></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {newOrderItems.map((item) => (
+                            <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                              <td style={{ padding: "8px 4px", fontWeight: 600 }}>{item.nombre}</td>
+                              <td style={{ padding: "8px 4px", textAlign: "center" }}>
+                                <div style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateBuilderQty(item.id, -1)}
+                                    style={{
+                                      padding: "1px 5px",
+                                      background: "#e2e8f0",
+                                      borderRadius: 4,
+                                      fontSize: 11,
+                                    }}
+                                  >
+                                    -
+                                  </button>
+                                  <span style={{ minWidth: 20, textAlign: "center" }}>{item.qty}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateBuilderQty(item.id, 1)}
+                                    style={{
+                                      padding: "1px 5px",
+                                      background: "#e2e8f0",
+                                      borderRadius: 4,
+                                      fontSize: 11,
+                                    }}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </td>
+                              <td style={{ padding: "8px 4px", textAlign: "right" }}>{money(item.precio)}</td>
+                              <td style={{ padding: "8px 4px", textAlign: "right", fontWeight: 700 }}>
+                                {money(item.qty * item.precio)}
+                              </td>
+                              <td style={{ padding: "8px 4px", textAlign: "center" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveBuilderItem(item.id)}
+                                  title="Quitar plato"
+                                  style={{ color: "#ef4444", padding: 2 }}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr>
+                            <td colSpan={3} style={{ padding: "10px 4px 4px 4px", textAlign: "right", fontWeight: 700 }}>
+                              Total Comanda ({newOrderItems.reduce((acc, i) => acc + i.qty, 0)} ítems):
+                            </td>
+                            <td style={{ padding: "10px 4px 4px 4px", textAlign: "right", fontWeight: 800, color: "#10b981", fontSize: 14 }}>
+                              {money(totalOrderBuilder)}
+                            </td>
+                            <td></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    )}
+                  </div>
                 </div>
+
                 <FormActions close={() => setModal(null)} />
               </form>
             </Modal>
@@ -896,6 +1206,7 @@ function Module({
                     <select name="piso">
                       <option value="1">Piso 1 (Salón Principal)</option>
                       <option value="2">Piso 2 (Terraza / VIP)</option>
+                      <option value="3">Piso 3 (Salón Eventos)</option>
                     </select>
                   </label>
                 </div>
@@ -918,12 +1229,8 @@ function Module({
                   <b>Mesa:</b>{" "}
                   {db.MESAS?.find((m) => m.IDMESA === selectedOrder.IDMESA)?.NUNMESA ||
                     selectedOrder.IDMESA}{" "}
-                  | <b>Fecha:</b> {date(selectedOrder.FECHA)} | <b>Estado actual:</b>{" "}
-                  {selectedOrder.ESTADO === "P"
-                    ? "Pendiente en cocina"
-                    : selectedOrder.ESTADO === "C"
-                    ? "Completado / Servido"
-                    : "Facturado"}
+                  | <b>Fecha:</b> {date(selectedOrder.FECHA)} | <b>Estado:</b>{" "}
+                  {badge(selectedOrder.ESTADO)}
                 </p>
               </div>
 
@@ -948,7 +1255,7 @@ function Module({
                 />
               </div>
 
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                 {selectedOrder.ESTADO === "P" && (
                   <button
                     className="btn primary"
@@ -960,12 +1267,13 @@ function Module({
                 {selectedOrder.ESTADO !== "F" && (
                   <button
                     className="btn primary"
-                    style={{ background: "#10b981" }}
+                    style={{ background: "#10b981", display: "inline-flex", alignItems: "center", gap: 6 }}
                     onClick={() => {
-                      setModal("sale");
+                      setOrderToCharge(selectedOrder);
+                      setModal("charge-order");
                     }}
                   >
-                    Cobrar y generar venta
+                    <DollarSign size={16} /> Cobrar y generar venta
                   </button>
                 )}
                 <button
@@ -983,10 +1291,135 @@ function Module({
         </PageHead>
       )}
 
+      {/* ================= MODAL GLOBAL: COBRAR PEDIDO Y EMITIR COMPROBANTE ================= */}
+      {modal === "charge-order" && orderToCharge && (
+        <Modal
+          title={`Cobrar Pedido #${String(orderToCharge.IDPEDIDO).padStart(4, "0")} — Mesa ${
+            db.MESAS?.find((m) => m.IDMESA === orderToCharge.IDMESA)?.NUNMESA || orderToCharge.IDMESA
+          }`}
+          close={() => {
+            setOrderToCharge(null);
+            setModal(null);
+          }}
+        >
+          {(() => {
+            const items = (db.DETALLE_PEDIDO || []).filter(
+              (d) => d.IDPEDIDO === orderToCharge.IDPEDIDO
+            );
+            const totalConsumo = items.reduce(
+              (a, d) => a + (Number(d.CANTIDAD) || 1) * (Number(d.PRECIO) || 0),
+              0
+            ) || 35.0;
+            const subtotal = parseFloat((totalConsumo / 1.18).toFixed(2));
+            const igv = parseFloat((totalConsumo - subtotal).toFixed(2));
+
+            return (
+              <form onSubmit={handleExecuteChargeOrder}>
+                <div style={{ marginBottom: 14 }}>
+                  <h4 style={{ margin: "0 0 8px 0", fontSize: 13, color: "#334155" }}>
+                    Resumen del consumo a cobrar
+                  </h4>
+                  <div
+                    style={{
+                      background: "#f8fafc",
+                      padding: "10px 14px",
+                      borderRadius: 8,
+                      border: "1px solid #e2e8f0",
+                      fontSize: 13,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ color: "#64748b" }}>Subtotal neto:</span>
+                      <span>{money(subtotal)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ color: "#64748b" }}>IGV (18%):</span>
+                      <span>{money(igv)}</span>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        paddingTop: 6,
+                        borderTop: "1px solid #cbd5e1",
+                        fontWeight: 800,
+                        fontSize: 15,
+                        color: "#0f172a",
+                      }}
+                    >
+                      <span>TOTAL A PAGAR:</span>
+                      <span style={{ color: "#10b981" }}>{money(totalConsumo)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-grid">
+                  <label>
+                    Cliente a facturar *
+                    <select name="clienteId" defaultValue={db.CLIENTE?.[0]?.IDCLIENTE}>
+                      {(db.CLIENTE || []).map((c) => (
+                        <option key={c.IDCLIENTE} value={c.IDCLIENTE}>
+                          {clientName(c.IDCLIENTE)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Método de pago *
+                    <select name="metodoId">
+                      {(db.METODO_PAGO || []).map((m) => (
+                        <option key={m.IDMETODO_PAGO} value={m.IDMETODO_PAGO}>
+                          {m.NOMMETODO}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="form-grid">
+                  <label>
+                    Tipo de comprobante electrónico *
+                    <select name="tipoComprobante">
+                      <option value="BOLETA">Boleta Electrónica (B001)</option>
+                      <option value="FACTURA">Factura Electrónica (F001)</option>
+                    </select>
+                  </label>
+                  <label>
+                    Atendido / Cobrado por
+                    <input defaultValue={currentAttendantName} readOnly />
+                  </label>
+                </div>
+
+                <input type="hidden" name="totalManual" value={totalConsumo} />
+
+                <div className="form-actions" style={{ marginTop: 18 }}>
+                  <button
+                    type="button"
+                    className="btn outline"
+                    onClick={() => {
+                      setOrderToCharge(null);
+                      setModal(null);
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="btn primary"
+                    style={{ background: "#10b981", display: "inline-flex", alignItems: "center", gap: 6 }}
+                    type="submit"
+                  >
+                    <CheckCircle2 size={16} /> Confirmar cobro y emitir comprobante
+                  </button>
+                </div>
+              </form>
+            );
+          })()}
+        </Modal>
+      )}
+
       {/* ================= VISTA VENTAS ================= */}
       {view === "ventas" && (
         <PageHead
-          title="Ventas"
           desc="Transacciones comerciales y facturación a clientes"
           action="Registrar venta"
           onAction={() => setModal("sale")}
@@ -1055,11 +1488,19 @@ function Module({
 
           {modal === "sale" && (
             <Modal title="Registrar venta de salón" close={() => setModal(null)}>
-              <form onSubmit={addSale}>
+              <form onSubmit={handleExecuteChargeOrder}>
                 <label>
                   Pedido a liquidar *
-                  <select name="pedidoId" required>
-                    {(db.PEDIDOS || []).slice(-15).reverse().map((p) => {
+                  <select
+                    name="pedidoId"
+                    required
+                    onChange={(e) => {
+                      const id = Number(e.target.value);
+                      const p = (db.PEDIDOS || []).find((x) => x.IDPEDIDO === id);
+                      if (p) setOrderToCharge(p);
+                    }}
+                  >
+                    {(db.PEDIDOS || []).slice(-20).reverse().map((p) => {
                       const mesa = (db.MESAS || []).find((m) => m.IDMESA === p.IDMESA)?.NUNMESA || p.IDMESA;
                       const hasVenta = (db.VENTAS || []).some((v) => v.IDPEDIDO === p.IDPEDIDO);
                       return (
@@ -1101,7 +1542,7 @@ function Module({
                     </select>
                   </label>
                   <label>
-                    Monto total estimado (S/)
+                    Importe total estimado (S/)
                     <input
                       name="totalManual"
                       type="number"
@@ -1121,7 +1562,6 @@ function Module({
       {/* ================= VISTA COMPROBANTES ================= */}
       {view === "comprobantes" && (
         <PageHead
-          title="Comprobantes"
           desc="Emisión y reimpresión de Boletas y Facturas electrónicas"
           action="Generar comprobante"
           onAction={() => setModal("receipt")}
@@ -1235,6 +1675,17 @@ function Module({
                   <span>#{selectedPrintItem.idVenta}</span>
                 </div>
                 <div className="ticket-divider" />
+                {selectedPrintItem.items && selectedPrintItem.items.length > 0 && (
+                  <div style={{ marginBottom: 8 }}>
+                    {selectedPrintItem.items.map((it, idx) => (
+                      <div key={idx} className="ticket-row" style={{ fontSize: 11 }}>
+                        <span>{it.cant}x {it.nombre}</span>
+                        <span>{money(it.sub)}</span>
+                      </div>
+                    ))}
+                    <div className="ticket-divider" />
+                  </div>
+                )}
                 <div className="ticket-row">
                   <span>Consumo de Salón:</span>
                   <span>{money(selectedPrintItem.total / 1.18)}</span>
@@ -1282,7 +1733,6 @@ function Module({
       {/* ================= VISTA FINANZAS ================= */}
       {view === "finanzas" && (
         <PageHead
-          title="Finanzas"
           desc="Deudas, ingresos, egresos y balances de restaurante"
         >
           <div className="stats compact">
@@ -1324,7 +1774,6 @@ function Module({
       {/* ================= VISTA PERSONAL Y UBICACION ================= */}
       {(view === "personal" || view === "ubicacion") && (
         <PageHead
-          title={view === "personal" ? "Personal y acceso" : "Ubicación"}
           desc={
             view === "personal"
               ? "Empleados, usuarios del sistema y turnos asignados"
@@ -1393,7 +1842,6 @@ function Module({
       {/* ================= VISTA REPORTES ================= */}
       {view === "reportes" && (
         <PageHead
-          title="Reportes"
           desc="Métricas y estadísticas calculadas en tiempo real"
         >
           <div className="stats">
@@ -1426,13 +1874,14 @@ function Module({
                 const n = (db.VENTAS || []).filter(
                   (v) => v.IDMETODO_PAGO === m.IDMETODO_PAGO
                 ).length;
+                const pct = Math.min(100, Math.max(6, Math.round((n / maxVentasPorMetodo) * 100)));
                 return (
                   <div className="report-line" key={m.IDMETODO_PAGO}>
-                    <span>{m.NOMMETODO}</span>
+                    <span title={m.NOMMETODO}>{m.NOMMETODO}</span>
                     <div>
-                      <i style={{ width: `${Math.max(8, n * 20)}%` }} />
+                      <i style={{ width: `${pct}%` }} />
                     </div>
-                    <b>{n} transacciones</b>
+                    <b>{n} transac.</b>
                   </div>
                 );
               })}
@@ -1440,22 +1889,21 @@ function Module({
             <div className="card report-bars">
               <h3>Pedidos por estado de atención</h3>
               {[
-                { code: "P", label: "Pendientes en cocina" },
-                { code: "C", label: "Completados / Servidos" },
-                { code: "F", label: "Facturados / Cobrados" },
+                { label: "Pendientes en cocina", count: reportStatusCounts.p, colorClass: "orange-bar" },
+                { label: "Atendidos en salón", count: reportStatusCounts.c, colorClass: "blue-bar" },
+                { label: "Cobrados / Facturados", count: reportStatusCounts.f, colorClass: "green-bar" },
               ].map((s) => {
-                const count = (db.PEDIDOS || []).filter((p) => p.ESTADO === s.code).length;
-                const total = db.PEDIDOS?.length || 1;
+                const pct = Math.min(100, Math.max(6, Math.round((s.count / reportStatusCounts.max) * 100)));
                 return (
-                  <div className="report-line" key={s.code}>
-                    <span>{s.label} ({s.code})</span>
+                  <div className="report-line" key={s.label}>
+                    <span title={s.label}>{s.label}</span>
                     <div>
                       <i
-                        className="orange-bar"
-                        style={{ width: `${Math.max(5, (count / total) * 100)}%` }}
+                        className={s.colorClass}
+                        style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <b>{count}</b>
+                    <b>{s.count} pedidos</b>
                   </div>
                 );
               })}
@@ -1466,7 +1914,7 @@ function Module({
 
       {/* ================= VISTA CONFIGURACION ================= */}
       {view === "configuracion" && (
-        <PageHead title="Configuración" desc="Opciones y sincronización del sistema">
+        <PageHead desc="Opciones y sincronización del sistema">
           <div className="card settings">
             <h3>Datos y persistencia</h3>
             <p>

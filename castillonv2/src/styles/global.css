@@ -567,6 +567,11 @@ h3 {
   color: #827a9a;
 }
 
+.badge.info {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
 .table-card {
   padding: 20px;
 }
@@ -841,43 +846,75 @@ tr:last-child td {
   color: #aaa;
 }
 
+.report-bars {
+  overflow: hidden;
+}
+
 .report-bars h3 {
   margin-bottom: 20px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
 }
 
 .report-line {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 15px 0;
-  font-size: 11px;
+  gap: 12px;
+  margin: 16px 0;
+  font-size: 12px;
 }
 
 .report-line > span {
-  width: 100px;
+  width: 130px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #475569;
+  font-weight: 500;
 }
 
 .report-line > div {
-  height: 7px;
-  background: #f0eef6;
-  border-radius: 4px;
+  height: 9px;
+  background: #f1f5f9;
+  border-radius: 9999px;
   flex: 1;
+  min-width: 50px;
+  overflow: hidden;
+  position: relative;
 }
 
 .report-line i {
   display: block;
   height: 100%;
-  border-radius: 4px;
-  background: #886de8;
+  border-radius: 9999px;
+  background: #8b5cf6;
+  max-width: 100%;
+  transition: width 0.3s ease;
 }
 
 .report-line i.orange-bar {
-  background: #efa74e;
+  background: #f59e0b;
+}
+
+.report-line i.green-bar {
+  background: #10b981;
+}
+
+.report-line i.blue-bar {
+  background: #3b82f6;
 }
 
 .report-line > b {
-  width: 20px;
+  min-width: 80px;
+  width: auto;
   text-align: right;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
 }
 
 .settings {

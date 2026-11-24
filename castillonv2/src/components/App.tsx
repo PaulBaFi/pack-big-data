@@ -344,6 +344,7 @@ export default function App({ currentUser }: { currentUser?: CastillonUser }) {
               clientName={clientName}
               personName={personName}
               go={go}
+              user={user}
             />
           )}
         </div>

@@ -7,7 +7,7 @@ function PageHead({
   onAction,
   children,
 }: {
-  title: string;
+  title?: string;
   desc: string;
   action?: string;
   onAction?: () => void;
@@ -15,10 +15,9 @@ function PageHead({
 }) {
   return (
     <>
-      <div className="page-head">
+      <div className="page-head" style={{ marginBottom: 16 }}>
         <div>
-          <h2>{title}</h2>
-          <p>{desc}</p>
+          <p style={{ margin: 0, color: "#64748b", fontSize: 13.5 }}>{desc}</p>
         </div>
         {action && (
           <button className="btn primary" onClick={onAction}>
