@@ -1,0 +1,15 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import { PowerBIEmbed } from '../components/PowerBIEmbed';
+
+const dashboardUrl = 'https://app.powerbi.com/view?r=eyJrIjoiODhkNDM1OTEtOGM5ZS00N2RkLWJkM2YtMDE2ZDBkMGQwNWMyIiwidCI6IjEzODQxZDVmLTk2OGQtNDYyNC1hN2RhLWQ2OGE2MDA2YTg0YSIsImMiOjR9';
+---
+<AdminLayout title="Dashboard BI | AdminOlap" activeSection="Dashboard de Power BI" fullWidth>
+  <PowerBIEmbed
+    title="Dashboard Analítico"
+    description="Visualización de indicadores e información consolidada del Data Warehouse."
+    embedUrl={dashboardUrl}
+    externalUrl={dashboardUrl}
+    client:load
+  />
+</AdminLayout>

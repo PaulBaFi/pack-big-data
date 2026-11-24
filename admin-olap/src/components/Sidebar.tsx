@@ -72,17 +72,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath }) => {
                   <Icon className={`w-4 h-4 ${item.active ? 'text-cyan-400' : 'text-slate-500'}`} />
                   <span>{item.name}</span>
                 </div>
-                {item.badge && (
-                  <span
-                    className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-semibold ${
-                      item.active
-                        ? 'bg-cyan-400/20 text-cyan-300'
-                        : 'bg-slate-800 text-slate-400'
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
               </a>
             );
           })}

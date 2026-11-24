@@ -1,0 +1,21 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import { PowerBIEmbed } from '../components/PowerBIEmbed';
+
+const reportUrl = 'https://app.powerbi.com/groups/me/rdlreports/bd7f0f49-1a5c-4d47-b097-36d7038d3a62?rp:Organizacion=Todas&experience=power-bi';
+// IMPORTANTE: La ruta /groups/me/rdlreports/... es un enlace de visualización autenticada.
+// No garantiza que Power BI permita mostrar el reporte dentro de un iframe.
+// Sustituye esta URL por el enlace seguro de inserción emitido por Power BI
+// (Archivo > Insertar informe > Sitio web o portal) cuando esté disponible.
+const reportEmbedUrl = reportUrl;
+---
+<AdminLayout title="Reportes BI | AdminOlap" activeSection="Reportes Paginados de Power BI" fullWidth>
+  <PowerBIEmbed
+    title="Reportes Paginados"
+    description="Consulta de reportes detallados desde Power BI Report Builder."
+    embedUrl={reportEmbedUrl}
+    externalUrl={reportUrl}
+    requiresAuth
+    client:load
+  />
+</AdminLayout>
