@@ -281,6 +281,10 @@ function Listing({
   const [modal, setModal] = useState(false);
   const size = 8;
   const [form, setForm] = useState<Record<string, string>>({});
+  // Líneas de detalle para el modal de ventas
+  const [saleLines, setSaleLines] = useState<{ idProducto: number; descripcion: string; cantidad: number; precio: number }[]>([
+    { idProducto: 0, descripcion: "", cantidad: 1, precio: 0 },
+  ]);
   const update = (patch: Partial<DB>) => {
     const d = { ...db, ...patch };
     setDb(d);
@@ -457,41 +461,87 @@ function Listing({
         body: JSON.stringify({ table: 'FICHA_CLINICA', row: item }),
       }).catch(console.error);
     } else if (section === "ventas") {
-      const tot = Number(form.total) || 60;
-      const sub = Number((tot / 1.18).toFixed(2));
-      const igv = Number((tot - sub).toFixed(2));
+      // Calcular totales desde las líneas de detalle
+      const lineasValidas = saleLines.filter((l) => l.descripcion.trim() || l.idProducto > 0);
+      const sub = lineasValidas.reduce((s, l) => s + l.cantidad * l.precio, 0);
+      const descPct = Number(form.descuento || 0);
+      const descMonto = Number(((sub * descPct) / 100).toFixed(2));
+      const baseIgv = Number((sub - descMonto).toFixed(2));
+      const igv = Number((baseIgv * 0.18).toFixed(2));
+      const tot = Number((baseIgv + igv).toFixed(2));
+
+      const idVenta = nextId(db.VENTA, "IDVENTA");
       const item: VENTA = {
-        IDVENTA: nextId(db.VENTA, "IDVENTA"),
+        IDVENTA: idVenta,
         IDCLIENTE: Number(form.cliente || 1),
         FECHA: new Date().toISOString().slice(0, 10),
-        SUBTOTAL: sub,
-        DESCUENTO: 0,
+        SUBTOTAL: baseIgv,
+        DESCUENTO: descMonto,
         IGV: igv,
         TOTAL: tot,
         ESTADO: "CONFIRMADA",
       };
-      update({ VENTA: [...(db.VENTA || []), item] });
+
+      // Generar detalles de venta
+      const detalles: DETALLE_VENTA[] = lineasValidas.map((l, i) => ({
+        IDDETALLE_VENTA: nextId(db.DETALLE_VENTA, "IDDETALLE_VENTA") + i,
+        IDVENTA: idVenta,
+        IDPRODUCTO: l.idProducto || 1,
+        DESCRIPCION: l.descripcion || `Producto #${l.idProducto}`,
+        CANTIDAD: l.cantidad,
+        PRECIO_UNITARIO: l.precio,
+        PRECIO_FINAL: l.precio,
+        SUBTOTAL: Number((l.cantidad * l.precio).toFixed(2)),
+      }));
+
+      // Generar comprobante
+      const tipo = form.tipo || "B";
+      const newBoletas = [...(db.BOLETA || [])];
+      const newFacturas = [...(db.FACTURA || [])];
+      if (tipo === "B") {
+        newBoletas.push({ IDBOLETA: nextId(db.BOLETA, "IDBOLETA"), IDVENTA: idVenta, SERIE: "B001", NUMERO: 1000 + idVenta });
+      } else {
+        newFacturas.push({ IDFACTURA: nextId(db.FACTURA, "IDFACTURA"), IDVENTA: idVenta, SERIE: "F001", NUMERO: 1000 + idVenta });
+      }
+
+      update({
+        VENTA: [...(db.VENTA || []), item],
+        DETALLE_VENTA: [...(db.DETALLE_VENTA || []), ...detalles],
+        BOLETA: newBoletas,
+        FACTURA: newFacturas,
+      });
+
+      // Persistir en PostgreSQL
       fetch('/api/data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           table: 'VENTA',
           row: {
-            IDVENTA: item.IDVENTA,
+            IDVENTA: idVenta,
             IDCLIENTE: item.IDCLIENTE,
             FECH_VENTA: new Date().toISOString(),
             TOTAL: tot,
             TOTALAAPAGAR: tot,
-            SUBTOTAL: sub,
+            SUBTOTAL: baseIgv,
             IGV: igv,
-            TIPO_COMPROBANTE: form.tipo || 'B',
-            ESTADO: '1'
+            TIPO_COMPROBANTE: tipo,
+            ESTADO: '1',
           }
         }),
+      }).then(() => {
+        detalles.forEach((d) => {
+          fetch('/api/data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ table: 'DETALLE_VENTA', row: d }),
+          }).catch(console.error);
+        });
       }).catch(console.error);
     }
     setModal(false);
     setForm({});
+    setSaleLines([{ idProducto: 0, descripcion: "", cantidad: 1, precio: 0 }]);
   };
   const statusValue = (r: Record<string, any>) =>
     r.ESTADO_CITA ?? r.ESTADO ?? (r.ACTIVO ? "Activo" : "Inactivo");
@@ -784,7 +834,7 @@ function Listing({
       {modal && (
         <Modal
           title={`Nuevo registro · ${title}`}
-          onClose={() => setModal(false)}
+          onClose={() => { setModal(false); setForm({}); setSaleLines([{ idProducto: 0, descripcion: "", cantidad: 1, precio: 0 }]); }}
         >
           <div className="form-grid">
             {section === "mascotas" && (
@@ -969,6 +1019,7 @@ function Listing({
             )}
             {section === "ventas" && (
               <>
+                {/* ── Fila 1: Cliente y Mascota ── */}
                 <Select
                   label="Cliente *"
                   value={form.cliente || "1"}
@@ -983,13 +1034,46 @@ function Listing({
                     );
                   })}
                 </Select>
-                <Input
-                  label="Total venta (S/) *"
-                  type="number"
-                  value={form.total || ""}
-                  onChange={(e) => setForm({ ...form, total: e.target.value })}
-                  placeholder="Ej: 120.00"
-                />
+                <Select
+                  label="Mascota del cliente"
+                  value={form.mascota || ""}
+                  onChange={(e) => setForm({ ...form, mascota: e.target.value })}
+                >
+                  <option value="">Sin mascota asociada</option>
+                  {(db.MASCOTA || [])
+                    .filter((m) => {
+                      const cli = (db.CLIENTE || []).find((c) => String(c.IDCLIENTE) === (form.cliente || "1"));
+                      return cli ? m.IDPERSONA === cli.IDPERSONA : true;
+                    })
+                    .map((m) => (
+                      <option key={m.IDMASCOTA} value={m.IDMASCOTA}>
+                        {m.NOMBRE} ({m.GENERO})
+                      </option>
+                    ))}
+                </Select>
+
+                {/* ── Cita vinculada ── */}
+                <Select
+                  label="Cita vinculada (opcional)"
+                  value={form.cita || ""}
+                  onChange={(e) => setForm({ ...form, cita: e.target.value })}
+                >
+                  <option value="">Sin cita vinculada</option>
+                  {(db.CITA || [])
+                    .filter((c) => !form.mascota || String(c.IDMASCOTA) === form.mascota)
+                    .slice(-15)
+                    .reverse()
+                    .map((c) => {
+                      const pet = (db.MASCOTA || []).find((m) => m.IDMASCOTA === c.IDMASCOTA);
+                      return (
+                        <option key={c.IDCITA} value={c.IDCITA}>
+                          #{c.IDCITA} · {c.FECHA} · {pet?.NOMBRE || `Mascota #${c.IDMASCOTA}`} · {c.MOTIVO}
+                        </option>
+                      );
+                    })}
+                </Select>
+
+                {/* ── Tipo Comprobante y Descuento ── */}
                 <Select
                   label="Tipo Comprobante"
                   value={form.tipo || "B"}
@@ -998,11 +1082,159 @@ function Listing({
                   <option value="B">Boleta</option>
                   <option value="F">Factura</option>
                 </Select>
+                <Input
+                  label="Descuento (%)"
+                  type="number"
+                  value={form.descuento || "0"}
+                  onChange={(e) => setForm({ ...form, descuento: e.target.value })}
+                  placeholder="0"
+                />
+
+                {/* ── Líneas de productos / servicios ── */}
+                <div style={{ gridColumn: "1 / -1", marginTop: 4 }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    Productos / Servicios *
+                  </p>
+                  {saleLines.map((line, idx) => (
+                    <div key={idx} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr auto", gap: 8, marginBottom: 8, alignItems: "end" }}>
+                      {/* Producto (con opción de descripción libre) */}
+                      <div>
+                        <label style={{ fontSize: 12, color: "#64748b", display: "block", marginBottom: 4 }}>
+                          Producto / Servicio
+                        </label>
+                        <select
+                          value={line.idProducto || ""}
+                          onChange={(e) => {
+                            const prod = (db.PRODUCTO || []).find((p) => p.IDPRODUCTO === Number(e.target.value));
+                            const updated = [...saleLines];
+                            updated[idx] = {
+                              ...updated[idx],
+                              idProducto: Number(e.target.value) || 0,
+                              descripcion: prod?.NOMBRE || updated[idx].descripcion,
+                              precio: prod ? prod.PRECIO_VENTA : updated[idx].precio,
+                            };
+                            setSaleLines(updated);
+                          }}
+                          style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13, background: "#fff" }}
+                        >
+                          <option value="">— Descripción libre —</option>
+                          <optgroup label="Medicamentos">
+                            {(db.PRODUCTO || []).filter((p) => p.IDCATEGORIA === 1 && p.ACTIVO).map((p) => (
+                              <option key={p.IDPRODUCTO} value={p.IDPRODUCTO}>{p.NOMBRE} · S/{p.PRECIO_VENTA}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Vacunas">
+                            {(db.PRODUCTO || []).filter((p) => p.IDCATEGORIA === 5 && p.ACTIVO).map((p) => (
+                              <option key={p.IDPRODUCTO} value={p.IDPRODUCTO}>{p.NOMBRE} · S/{p.PRECIO_VENTA}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Alimentos">
+                            {(db.PRODUCTO || []).filter((p) => p.IDCATEGORIA === 2 && p.ACTIVO).map((p) => (
+                              <option key={p.IDPRODUCTO} value={p.IDPRODUCTO}>{p.NOMBRE} · S/{p.PRECIO_VENTA}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Otros">
+                            {(db.PRODUCTO || []).filter((p) => ![1, 2, 5].includes(p.IDCATEGORIA) && p.ACTIVO).map((p) => (
+                              <option key={p.IDPRODUCTO} value={p.IDPRODUCTO}>{p.NOMBRE} · S/{p.PRECIO_VENTA}</option>
+                            ))}
+                          </optgroup>
+                        </select>
+                        {/* Descripción libre si no se seleccionó producto */}
+                        {!line.idProducto && (
+                          <input
+                            value={line.descripcion}
+                            onChange={(e) => {
+                              const updated = [...saleLines];
+                              updated[idx] = { ...updated[idx], descripcion: e.target.value };
+                              setSaleLines(updated);
+                            }}
+                            placeholder="Ej: Consulta general, Baño medicado..."
+                            style={{ marginTop: 4, width: "100%", padding: "7px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 12, color: "#475569" }}
+                          />
+                        )}
+                      </div>
+                      {/* Cantidad */}
+                      <div>
+                        <label style={{ fontSize: 12, color: "#64748b", display: "block", marginBottom: 4 }}>Cant.</label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={line.cantidad}
+                          onChange={(e) => {
+                            const updated = [...saleLines];
+                            updated[idx] = { ...updated[idx], cantidad: Math.max(1, Number(e.target.value)) };
+                            setSaleLines(updated);
+                          }}
+                          style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13 }}
+                        />
+                      </div>
+                      {/* Precio unitario */}
+                      <div>
+                        <label style={{ fontSize: 12, color: "#64748b", display: "block", marginBottom: 4 }}>P. Unit. (S/)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={line.precio}
+                          onChange={(e) => {
+                            const updated = [...saleLines];
+                            updated[idx] = { ...updated[idx], precio: Number(e.target.value) };
+                            setSaleLines(updated);
+                          }}
+                          style={{ width: "100%", padding: "8px 10px", border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13 }}
+                        />
+                      </div>
+                      {/* Eliminar línea */}
+                      <button
+                        type="button"
+                        onClick={() => setSaleLines(saleLines.filter((_, i) => i !== idx))}
+                        disabled={saleLines.length === 1}
+                        style={{ padding: "8px 10px", border: "1px solid #fca5a5", borderRadius: 8, background: "#fff5f5", color: "#dc2626", cursor: saleLines.length === 1 ? "not-allowed" : "pointer", opacity: saleLines.length === 1 ? 0.4 : 1, fontSize: 16, lineHeight: 1 }}
+                        title="Eliminar línea"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setSaleLines([...saleLines, { idProducto: 0, descripcion: "", cantidad: 1, precio: 0 }])}
+                    style={{ fontSize: 12, color: "#2563eb", background: "none", border: "1px dashed #93c5fd", borderRadius: 8, padding: "6px 14px", cursor: "pointer", marginTop: 2 }}
+                  >
+                    + Agregar producto / servicio
+                  </button>
+                </div>
+
+                {/* ── Resumen de totales ── */}
+                {(() => {
+                  const lineas = saleLines.filter((l) => l.descripcion.trim() || l.idProducto > 0);
+                  const rawSub = lineas.reduce((s, l) => s + l.cantidad * l.precio, 0);
+                  const descPct = Number(form.descuento || 0);
+                  const descMonto = (rawSub * descPct) / 100;
+                  const baseIgv = rawSub - descMonto;
+                  const igv = baseIgv * 0.18;
+                  const total = baseIgv + igv;
+                  if (rawSub === 0) return null;
+                  return (
+                    <div style={{ gridColumn: "1 / -1", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 24px", fontSize: 13, marginTop: 4 }}>
+                      <span style={{ color: "#64748b" }}>Subtotal</span>
+                      <span style={{ textAlign: "right", fontFamily: "monospace" }}>S/ {rawSub.toFixed(2)}</span>
+                      {descMonto > 0 && <>
+                        <span style={{ color: "#64748b" }}>Descuento ({descPct}%)</span>
+                        <span style={{ textAlign: "right", fontFamily: "monospace", color: "#dc2626" }}>– S/ {descMonto.toFixed(2)}</span>
+                      </>}
+                      <span style={{ color: "#64748b" }}>IGV (18%)</span>
+                      <span style={{ textAlign: "right", fontFamily: "monospace" }}>S/ {igv.toFixed(2)}</span>
+                      <span style={{ fontWeight: 700 }}>Total a pagar</span>
+                      <span style={{ textAlign: "right", fontFamily: "monospace", fontWeight: 700, color: "#2563eb", fontSize: 15 }}>S/ {total.toFixed(2)}</span>
+                    </div>
+                  );
+                })()}
               </>
             )}
           </div>
           <div className="modal-actions">
-            <button className="btn btn-ghost" onClick={() => setModal(false)}>
+            <button className="btn btn-ghost" onClick={() => { setModal(false); setForm({}); setSaleLines([{ idProducto: 0, descripcion: "", cantidad: 1, precio: 0 }]); }}>
               Cancelar
             </button>
             <button className="btn btn-primary" onClick={add}>
