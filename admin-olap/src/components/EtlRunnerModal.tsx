@@ -187,40 +187,7 @@ export const EtlRunnerModal: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* ── Barra de acciones críticas (siempre visible) ── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-        {/* Botón: Limpiar BD OLAP */}
-        <button
-          onClick={() => { setShowCleanModal(true); setCleanResult(null); setCleanError(null); }}
-          disabled={isRunning || isCleaning}
-          className="flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl bg-rose-950 hover:bg-rose-900 border border-rose-700 hover:border-rose-500 text-rose-300 hover:text-white font-bold text-sm shadow-lg transition-all disabled:opacity-40"
-        >
-          <Trash2 className="w-4 h-4" />
-          <span>Limpiar BD OLAP</span>
-          <span className="text-[10px] font-normal bg-rose-800/60 px-2 py-0.5 rounded-full ml-1">TRUNCATE</span>
-        </button>
-
-        {/* Botón: Ejecutar ETL */}
-        <button
-          onClick={executeEtl}
-          disabled={isRunning || isCleaning}
-          className="flex-1 flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm shadow-lg shadow-cyan-900/40 transition-all disabled:opacity-50"
-        >
-          {isRunning ? (
-            <>
-              <RotateCw className="w-4 h-4 animate-spin" />
-              <span>Ejecutando ETL...</span>
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4 fill-white" />
-              <span>Ejecutar Pipeline ETL Ahora</span>
-            </>
-          )}
-        </button>
-      </div>
-
-      {/* Barra de Acción Principal (descripción) */}
+      {/* Barra de Acción Principal (descripción + botones) */}
       <div className="bg-gradient-to-r from-[#0f172a] via-[#1e293b] to-[#0f172a] border border-cyan-500/30 rounded-2xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl -z-0"></div>
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -237,10 +204,37 @@ export const EtlRunnerModal: React.FC = () => {
             </p>
           </div>
 
-          <div className="text-xs text-slate-500 text-right hidden md:block">
-            <span className="bg-slate-800 px-3 py-1.5 rounded-lg font-mono border border-slate-700">
-              Usa los botones de arriba ↑
-            </span>
+          {/* Botones de acción dentro del card */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+            {/* Botón: Limpiar BD OLAP */}
+            <button
+              onClick={() => { setShowCleanModal(true); setCleanResult(null); setCleanError(null); }}
+              disabled={isRunning || isCleaning}
+              className="flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl bg-rose-950 hover:bg-rose-900 border border-rose-700 hover:border-rose-500 text-rose-300 hover:text-white font-bold text-sm shadow-lg transition-all disabled:opacity-40"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Limpiar BD OLAP</span>
+              <span className="text-[10px] font-normal bg-rose-800/60 px-2 py-0.5 rounded-full ml-1">TRUNCATE</span>
+            </button>
+
+            {/* Botón: Ejecutar ETL */}
+            <button
+              onClick={executeEtl}
+              disabled={isRunning || isCleaning}
+              className="flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm shadow-lg shadow-cyan-900/40 transition-all disabled:opacity-50"
+            >
+              {isRunning ? (
+                <>
+                  <RotateCw className="w-4 h-4 animate-spin" />
+                  <span>Ejecutando ETL...</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 fill-white" />
+                  <span>Ejecutar Pipeline ETL Ahora</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
