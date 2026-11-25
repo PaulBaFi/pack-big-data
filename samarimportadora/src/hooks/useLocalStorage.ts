@@ -31,19 +31,28 @@ const emptyStore: Store = {
 
 const LOCAL_STORAGE_KEY = 'samar_store_cache_v1';
 let sharedStore: Store = emptyStore;
-let sharedLoaded = false;
+let sharedFetched = false;
 let inFlightPromise: Promise<Store> | null = null;
 const listeners = new Set<(s: Store) => void>();
 
-function updateSharedStore(next: Store) {
+function updateSharedStore(next: Store, markFetched = true) {
   sharedStore = next;
-  sharedLoaded = true;
+  if (markFetched) sharedFetched = true;
   if (typeof window !== 'undefined') {
     try {
       window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(next));
     } catch {}
   }
   listeners.forEach((listener) => listener(next));
+}
+
+export function invalidateStoreCache() {
+  sharedFetched = false;
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.removeItem(LOCAL_STORAGE_KEY);
+    } catch {}
+  }
 }
 
 function loadInitialStore(): Store {
@@ -66,7 +75,10 @@ async function fetchAllStore(): Promise<Store> {
 
   inFlightPromise = (async () => {
     try {
-      const response = await fetch('/api/data?table=all');
+      const response = await fetch(`/api/data?table=all&_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
       const body = await response.json();
       if (!response.ok || !body.ok) {
         throw new Error(body.error || 'PostgreSQL no está disponible');
@@ -87,7 +99,7 @@ async function fetchAllStore(): Promise<Store> {
         detalleVentas: d.detalleVentas ?? [],
       };
 
-      updateSharedStore(next);
+      updateSharedStore(next, true);
       return next;
     } finally {
       inFlightPromise = null;
@@ -99,16 +111,15 @@ async function fetchAllStore(): Promise<Store> {
 
 export function useStore() {
   const [store, setLocalStore] = useState<Store>(() => {
-    if (sharedLoaded) return sharedStore;
+    if (sharedFetched) return sharedStore;
     const initial = loadInitialStore();
     if (initial.clientes.length > 0) {
       sharedStore = initial;
-      sharedLoaded = true;
     }
     return sharedStore;
   });
 
-  const [loading, setLoading] = useState(!sharedLoaded);
+  const [loading, setLoading] = useState(!sharedFetched);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -137,7 +148,6 @@ export function useStore() {
         const cached = loadInitialStore();
         if (cached.clientes.length > 0) {
           sharedStore = cached;
-          sharedLoaded = true;
           setLocalStore(cached);
         }
       }
@@ -147,7 +157,7 @@ export function useStore() {
   }, []);
 
   useEffect(() => {
-    if (!sharedLoaded) {
+    if (!sharedFetched) {
       void reload();
     } else {
       setLoading(false);

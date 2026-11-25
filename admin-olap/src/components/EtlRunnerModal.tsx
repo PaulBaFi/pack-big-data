@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, CheckCircle2, AlertCircle, Clock, Terminal, RotateCw, Calendar, Save, History, Layers } from 'lucide-react';
+import { Play, CheckCircle2, AlertCircle, Clock, Terminal, RotateCw, Calendar, Save, History, Layers, Trash2, AlertTriangle, Database, Sparkles } from 'lucide-react';
 
 interface EtlConfig {
   frecuencia_sugerida: string;
@@ -43,6 +43,13 @@ export const EtlRunnerModal: React.FC = () => {
   // Historial de Logs
   const [history, setHistory] = useState<EtlLog[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Vaciado / Limpieza Total de la BD OLAP
+  const [showCleanModal, setShowCleanModal] = useState(false);
+  const [isCleaning, setIsCleaning] = useState(false);
+  const [resetLogsOnClean, setResetLogsOnClean] = useState(true);
+  const [cleanResult, setCleanResult] = useState<{ success: boolean; message: string; tablesCleaned?: string[] } | null>(null);
+  const [cleanError, setCleanError] = useState<string | null>(null);
 
   useEffect(() => {
     loadConfig();
@@ -97,6 +104,29 @@ export const EtlRunnerModal: React.FC = () => {
       console.error(e);
     } finally {
       setSavingConfig(false);
+    }
+  };
+
+  const executeClean = async () => {
+    setIsCleaning(true);
+    setCleanResult(null);
+    setCleanError(null);
+    try {
+      const res = await fetch('/api/etl/clean', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resetLogs: resetLogsOnClean }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Error al limpiar la BD OLAP');
+      }
+      setCleanResult(data);
+      loadHistory();
+    } catch (err: any) {
+      setCleanError(err.message);
+    } finally {
+      setIsCleaning(false);
     }
   };
 
@@ -157,7 +187,40 @@ export const EtlRunnerModal: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Barra de Acción Principal */}
+      {/* ── Barra de acciones críticas (siempre visible) ── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        {/* Botón: Limpiar BD OLAP */}
+        <button
+          onClick={() => { setShowCleanModal(true); setCleanResult(null); setCleanError(null); }}
+          disabled={isRunning || isCleaning}
+          className="flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl bg-rose-950 hover:bg-rose-900 border border-rose-700 hover:border-rose-500 text-rose-300 hover:text-white font-bold text-sm shadow-lg transition-all disabled:opacity-40"
+        >
+          <Trash2 className="w-4 h-4" />
+          <span>Limpiar BD OLAP</span>
+          <span className="text-[10px] font-normal bg-rose-800/60 px-2 py-0.5 rounded-full ml-1">TRUNCATE</span>
+        </button>
+
+        {/* Botón: Ejecutar ETL */}
+        <button
+          onClick={executeEtl}
+          disabled={isRunning || isCleaning}
+          className="flex-1 flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm shadow-lg shadow-cyan-900/40 transition-all disabled:opacity-50"
+        >
+          {isRunning ? (
+            <>
+              <RotateCw className="w-4 h-4 animate-spin" />
+              <span>Ejecutando ETL...</span>
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4 fill-white" />
+              <span>Ejecutar Pipeline ETL Ahora</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Barra de Acción Principal (descripción) */}
       <div className="bg-gradient-to-r from-[#0f172a] via-[#1e293b] to-[#0f172a] border border-cyan-500/30 rounded-2xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl -z-0"></div>
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -174,24 +237,10 @@ export const EtlRunnerModal: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={executeEtl}
-              disabled={isRunning}
-              className="flex items-center gap-2.5 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold text-sm shadow-lg shadow-cyan-900/40 hover:shadow-cyan-900/60 transition-all disabled:opacity-50 cursor-pointer"
-            >
-              {isRunning ? (
-                <>
-                  <RotateCw className="w-4 h-4 animate-spin" />
-                  <span>Ejecutando ETL...</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 fill-white" />
-                  <span>Ejecutar Pipeline ETL Ahora</span>
-                </>
-              )}
-            </button>
+          <div className="text-xs text-slate-500 text-right hidden md:block">
+            <span className="bg-slate-800 px-3 py-1.5 rounded-lg font-mono border border-slate-700">
+              Usa los botones de arriba ↑
+            </span>
           </div>
         </div>
       </div>
@@ -356,6 +405,155 @@ export const EtlRunnerModal: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal Interactivo de Ejecución en Tiempo Real */}
+      {showCleanModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0f172a] border border-rose-500/40 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl shadow-rose-950">
+
+            {/* Header */}
+            <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-rose-600/20 border border-rose-500/40 flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-rose-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Limpiar Base de Datos OLAP</h3>
+                  <p className="text-[11px] text-slate-400">DW_Empresas_OLAP — Acción irreversible</p>
+                </div>
+              </div>
+              {!isCleaning && !cleanResult && (
+                <button
+                  onClick={() => setShowCleanModal(false)}
+                  className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 transition-colors"
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-5">
+
+              {/* Esperando confirmación */}
+              {!cleanResult && !cleanError && !isCleaning && (
+                <>
+                  <div className="bg-rose-950/30 border border-rose-800/40 rounded-xl p-4 flex gap-3">
+                    <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                    <div className="text-xs text-rose-200 leading-relaxed space-y-1">
+                      <p className="font-semibold text-rose-300">Esta operación eliminará TODOS los datos del Data Warehouse.</p>
+                      <p>Se vaciará el contenido de las tablas de hechos y dimensiones mediante <code className="bg-rose-950/60 px-1 rounded font-mono">TRUNCATE ... RESTART IDENTITY CASCADE</code>.</p>
+                      <p className="text-rose-400">Úsala únicamente antes de una carga ETL total desde cero.</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-2">
+                    <p className="text-xs font-semibold text-slate-300 flex items-center gap-2 mb-3">
+                      <Database className="w-4 h-4 text-rose-400" />
+                      Tablas que se vaciarán:
+                    </p>
+                    {['fact_ventas_privadas', 'fact_compras_estatales', 'dim_empresa', 'dim_tiempo', 'dim_ubicacion', 'dim_tipo_pago', 'dim_categoria_item'].map((t) => (
+                      <div key={t} className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+                        {t}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3 bg-slate-900/40 border border-slate-800 rounded-xl">
+                    <input
+                      type="checkbox"
+                      id="resetLogsCheck"
+                      checked={resetLogsOnClean}
+                      onChange={(e) => setResetLogsOnClean(e.target.checked)}
+                      className="rounded bg-slate-900 border-slate-700 text-rose-500 focus:ring-0"
+                    />
+                    <label htmlFor="resetLogsCheck" className="text-xs text-slate-300 cursor-pointer">
+                      También vaciar historial ETL (<code className="font-mono text-rose-400 text-[10px]">etl_log_ejecucion</code>)
+                    </label>
+                  </div>
+                </>
+              )}
+
+              {/* Limpiando */}
+              {isCleaning && (
+                <div className="flex flex-col items-center justify-center py-8 gap-4">
+                  <RotateCw className="w-10 h-10 text-rose-400 animate-spin" />
+                  <p className="text-sm text-slate-300 font-semibold">Vaciando base de datos OLAP...</p>
+                  <p className="text-xs text-slate-500">Ejecutando TRUNCATE con CASCADE en Aiven PostgreSQL</p>
+                </div>
+              )}
+
+              {/* Éxito */}
+              {cleanResult && cleanResult.success && !isCleaning && (
+                <div className="space-y-4">
+                  <div className="bg-emerald-950/30 border border-emerald-800/40 rounded-xl p-4 flex gap-3 items-start">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                    <div className="text-xs text-emerald-200 leading-relaxed space-y-1">
+                      <p className="font-semibold text-emerald-300">¡Base de datos OLAP vaciada exitosamente!</p>
+                      <p>{cleanResult.message}</p>
+                    </div>
+                  </div>
+                  <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
+                    <p className="text-xs font-semibold text-slate-300 flex items-center gap-2 mb-3">
+                      <Sparkles className="w-4 h-4 text-cyan-400" />
+                      BD OLAP lista para carga total via ETL
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(cleanResult.tablesCleaned || []).map((t: string) => (
+                        <div key={t} className="flex items-center gap-2 text-[11px] font-mono text-emerald-400">
+                          <CheckCircle2 className="w-3 h-3 shrink-0" />
+                          {t}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Error */}
+              {cleanError && !isCleaning && (
+                <div className="bg-rose-950/30 border border-rose-800/40 rounded-xl p-4 flex gap-3 items-start">
+                  <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                  <div className="text-xs text-rose-200 leading-relaxed space-y-1">
+                    <p className="font-semibold text-rose-300">Error al vaciar la base de datos</p>
+                    <p className="font-mono text-rose-400">{cleanError}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-900/80 border-t border-slate-800 flex items-center justify-end gap-3">
+              {!cleanResult && !cleanError && !isCleaning && (
+                <>
+                  <button
+                    onClick={() => setShowCleanModal(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={executeClean}
+                    className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-700 hover:from-rose-500 hover:to-red-600 text-white text-xs font-bold shadow-lg shadow-rose-950 transition-all"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Sí, vaciar completamente</span>
+                  </button>
+                </>
+              )}
+              {(cleanResult || cleanError) && !isCleaning && (
+                <button
+                  onClick={() => setShowCleanModal(false)}
+                  className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition-colors"
+                >
+                  Cerrar
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Interactivo de Ejecución en Tiempo Real */}
       {showModal && (

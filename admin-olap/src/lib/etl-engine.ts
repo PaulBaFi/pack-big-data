@@ -476,3 +476,72 @@ async function populateDimCategoriaItem(): Promise<void> {
     'dw_olap'
   );
 }
+
+export interface CleanOlapResult {
+  success: boolean;
+  tablesCleaned: string[];
+  message: string;
+  timestamp: string;
+  error?: string;
+}
+
+export async function cleanOlapDatabase(
+  options: { resetLogs?: boolean; userEmail?: string } = {}
+): Promise<CleanOlapResult> {
+  const { resetLogs = false, userEmail = 'admin@bigdata.upsjb.edu.pe' } = options;
+  const timestamp = new Date().toISOString();
+
+  try {
+    const tablesToClean = [
+      'fact_ventas_privadas',
+      'fact_compras_estatales',
+      'dim_empresa',
+      'dim_tiempo',
+      'dim_ubicacion',
+      'dim_tipo_pago',
+      'dim_categoria_item',
+    ];
+
+    if (resetLogs) {
+      tablesToClean.push('etl_log_ejecucion');
+    }
+
+    const truncateSql = `TRUNCATE TABLE ${tablesToClean.map((t) => `"${t}"`).join(', ')} RESTART IDENTITY CASCADE;`;
+    await query(truncateSql, [], 'dw_olap');
+
+    // Registrar en auditoría administrativa
+    await logAdminAction(null, userEmail, 'OLAP_CLEAN_ALL_DATA', {
+      tablesCleaned: tablesToClean,
+      resetLogs,
+      timestamp,
+    });
+
+    return {
+      success: true,
+      tablesCleaned: tablesToClean,
+      message: `Se vaciaron exitosamente ${tablesToClean.length} tablas del Data Warehouse OLAP. La base de datos quedó completamente limpia y lista para la carga total.`,
+      timestamp,
+    };
+  } catch (err: any) {
+    console.error('[Clean OLAP Error]:', err);
+    try {
+      await logAdminAction(null, userEmail, 'OLAP_CLEAN_ERROR', {
+        error: err.message,
+        timestamp,
+      });
+    } catch {
+      // Ignorar error al registrar auditoría
+    }
+
+    return {
+      success: false,
+      tablesCleaned: [],
+      message: err.message || 'Error al vaciar la base de datos OLAP',
+      timestamp,
+      error: err.message,
+    };
+  } finally {
+    await closePool('dw_olap');
+  }
+}
+

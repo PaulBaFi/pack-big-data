@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { getPool } from '@/lib/db';
 import { lineTotal, saleTotals } from '@/utils/calculations';
 export const prerender = false;
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
 
 export const GET: APIRoute = async ({ request }) => {
   const client = await getPool().connect();

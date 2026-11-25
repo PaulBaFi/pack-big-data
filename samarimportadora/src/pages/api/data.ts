@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { getPool } from '@/lib/db';
 import { ENTITIES, isEntityName, type EntityDefinition } from '@/lib/entities';
 export const prerender = false;
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
 const quote = (name: string) => `"${name.replaceAll('"', '""')}"`;
 const relations: Record<string, Record<string, [string, string]>> = {
   provincias: { REGION_ID: ['REGION', 'REGION_ID'] },

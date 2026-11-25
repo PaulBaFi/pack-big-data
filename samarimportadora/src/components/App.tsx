@@ -27,7 +27,7 @@ import StatCard from "./ui/StatCard";
 import DataTable from "./ui/DataTable";
 import Modal from "./ui/Modal";
 import PageHeader from "./layout/PageHeader";
-import { useStore } from "../hooks/useLocalStorage";
+import { useStore, invalidateStoreCache } from "../hooks/useLocalStorage";
 import { money, date } from "../utils/formatters";
 import { lineTotal, saleTotals } from "../utils/calculations";
 
@@ -220,8 +220,15 @@ function CrudPage({
 
 function Dashboard({ store }: { store: any }) {
   const [metrics, setMetrics] = useState<any>({ summary: { ventas: 0, total: 0, clientes: 0, articulos: 0 }, monthly: [] });
-  useEffect(() => { fetch('/api/dashboard').then((r) => r.json()).then((result) => { if (result.ok) setMetrics(result.data); }); }, []);
+  useEffect(() => {
+    fetch(`/api/dashboard?_t=${Date.now()}`, { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((result) => { if (result.ok) setMetrics(result.data); });
+  }, [store.ventas.length]);
   const monthly = metrics.monthly.map((row: any) => ({ name: row.periodo, total: Number(row.total) }));
+  const latestVentas = [...(store.ventas || [])]
+    .sort((a: any, b: any) => new Date(b.FECHA).getTime() - new Date(a.FECHA).getTime() || String(b.DOCUMENTO).localeCompare(String(a.DOCUMENTO)))
+    .slice(0, 5);
   return (
     <>
       <PageHeader
@@ -277,11 +284,8 @@ function Dashboard({ store }: { store: any }) {
         <Card>
           <h2 className="mb-4 font-semibold">Últimas ventas</h2>
           <div className="space-y-3">
-            {store.ventas
-              .slice(-5)
-              .reverse()
-              .map((v: any) => (
-                <div className="flex justify-between border-b border-slate-100 pb-2 text-sm">
+            {latestVentas.map((v: any) => (
+                <div key={v.DOCUMENTO} className="flex justify-between border-b border-slate-100 pb-2 text-sm">
                   <span>
                     <b>{v.DOCUMENTO}</b>
                     <br />
@@ -335,9 +339,9 @@ function Sales({ store }: { store: any }) {
         rows={rows.map((v: any) => [
           v.DOCUMENTO,
           date(v.FECHA),
-          v.ID_CLIENTE,
+          v.CLIENTE_NOMBRE?.trim() || v.ID_CLIENTE,
           v.TIPO_DOCUMENTO,
-          `#${v.ID_VENDEDOR}`,
+          v.VENDEDOR_NOMBRE?.trim() || `#${v.ID_VENDEDOR}`,
           money(v.TOTAL_DOCUMENTO),
           <button onClick={() => setDetail(v)} className="text-emerald-700">
             <Eye size={17} />
@@ -410,6 +414,7 @@ function NewSale({ store }: { store: any }) {
     const response = await fetch('/api/ventas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ID_CLIENTE: client, ID_VENDEDOR: seller, SUCURSAL_ID: branch, TIPO_DOCUMENTO: documentType, lines: lines.map(({ CODIGO_PRODUCTO, CANTIDAD }) => ({ CODIGO_PRODUCTO, CANTIDAD })) }) });
     const result = await response.json();
     if (!response.ok || !result.ok) { setMessage(result.error || 'No se pudo guardar la venta'); return; }
+    invalidateStoreCache();
     location.href = "/ventas";
   };
   return (
@@ -579,7 +584,11 @@ function ReadOnly({
 }
 function Reports({ store }: { store: any }) {
   const [metrics, setMetrics] = useState<any>({ summary: { ventas: 0, total: 0 }, sellers: [] });
-  useEffect(() => { fetch('/api/dashboard').then((r) => r.json()).then((result) => { if (result.ok) setMetrics(result.data); }); }, []);
+  useEffect(() => {
+    fetch(`/api/dashboard?_t=${Date.now()}`, { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((result) => { if (result.ok) setMetrics(result.data); });
+  }, [store.ventas.length]);
   const data = metrics.sellers.map((row: any) => ({ name: row.nombre || `Vendedor ${row.ID_VENDEDOR}`, total: Number(row.total) }));
   return (
     <>
