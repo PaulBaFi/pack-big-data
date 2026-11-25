@@ -379,6 +379,7 @@ function Sales({ store }: { store: any }) {
 }
 
 function NewSale({ store }: { store: any }) {
+  const [, setStore] = useStore();
   const [client, setClient] = useState(store.clientes[0]?.ID_CLIENTE || "");
   const [seller, setSeller] = useState(store.vendedores[0]?.ID_VENDEDOR || "");
   const [branch, setBranch] = useState(store.sucursales[0]?.SUCURSAL_ID || "");
@@ -414,7 +415,26 @@ function NewSale({ store }: { store: any }) {
     const response = await fetch('/api/ventas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ID_CLIENTE: client, ID_VENDEDOR: seller, SUCURSAL_ID: branch, TIPO_DOCUMENTO: documentType, lines: lines.map(({ CODIGO_PRODUCTO, CANTIDAD }) => ({ CODIGO_PRODUCTO, CANTIDAD })) }) });
     const result = await response.json();
     if (!response.ok || !result.ok) { setMessage(result.error || 'No se pudo guardar la venta'); return; }
-    invalidateStoreCache();
+
+    // Actualizar el store optimísticamente con la nueva venta antes de navegar,
+    // así la tabla de /ventas la muestra de inmediato sin esperar un nuevo fetch.
+    if (result.data) {
+      const newVenta = result.data;
+      const clienteInfo = store.clientes.find((c: any) => c.ID_CLIENTE === client);
+      const vendedorInfo = store.vendedores.find((v: any) => v.ID_VENDEDOR === Number(seller));
+      newVenta.CLIENTE_NOMBRE = clienteInfo ? `${clienteInfo.NOMBRE || ''} ${clienteInfo.APELLIDO || ''}`.trim() : String(client);
+      newVenta.VENDEDOR_NOMBRE = vendedorInfo ? `${vendedorInfo.Nombre || ''} ${vendedorInfo.Apellido || ''}`.trim() : `#${seller}`;
+      const newDetalles = (newVenta.detalles || []).map((d: any) => ({ ...d, DOCUMENTO: newVenta.DOCUMENTO }));
+      delete newVenta.detalles;
+      setStore((prev: any) => ({
+        ...prev,
+        ventas: [newVenta, ...prev.ventas],
+        detalleVentas: [...prev.detalleVentas, ...newDetalles],
+      }));
+    } else {
+      invalidateStoreCache();
+    }
+
     location.href = "/ventas";
   };
   return (
